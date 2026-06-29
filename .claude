@@ -1,0 +1,37 @@
+# BernOS Project Guidelines & Architecture Spec
+
+Welcome to BernOS, a premium operating system desktop simulation portfolio.
+
+## Tech Stack
+- **Frontend**: Vue 3 (Composition API, `<script setup>`), TypeScript, Vite.
+- **Styling**: TailwindCSS v4 (CSS-first, custom variables defined in `@theme` inside `src/style.css`).
+- **State**: Pinia (`windowStore` for desktop environments, `spotifyStore` or similar for music/widgets).
+- **Backend/Database**: Bun runtime + SQLite (using native `bun:sqlite`).
+- **Icons**: `lucide-vue-next`.
+
+## Project Structure
+- `/src/components`: UI components.
+  - `DesktopBackground.vue`: Canvas particle system.
+  - `TopBar.vue`: Status bar & control centers.
+  - `Dock.vue`: Floating launchbar with zoom animations.
+  - `OsWindow.vue`: Drag/resize reusable glassmorphism window wrapper.
+- `/src/components/apps`: Sub-modules representing desktop applications.
+  - `TerminalApp.vue`: Command-line system with simulated shell.
+  - `VSCodeApp.vue`: Code mockups.
+  - `FilesApp.vue`: Directory explorer.
+  - `MailApp.vue`: Email mockup with contacts form.
+  - `SpotifyApp.vue`: Music widget.
+- `/src/stores`: Pinia stores.
+  - `windowStore.ts`: Dynamic window state, focus, position, size, and loading status.
+- `/server`: Bun REST API & SQLite databases.
+
+## Spec-Driven Development Standards
+1. **Feature Specification**: For every new feature or app, create or reference a `.spec` or implementation plan listing requirements and edge cases.
+2. **Modular Architecture**:
+   - Keep window logic encapsulated within `OsWindow.vue` and the Pinia store.
+   - Applications must function as standalone plugins/components inside the `<OsWindow>` body slot.
+   - Avoid global variables; use Pinia stores for cross-window interactions.
+3. **Noctalia Design System**:
+   - Palette: Deep space base (#0a0010, #0d0b1e), purples (#7c3aed, #a855f7) and blues (#1d4ed8, #3b82f6).
+   - Backdrop Blurs: Always apply `backdrop-blur-md` and light border overlays (`border border-white/10`) for windows, the dock, and dropdown controls to provide premium glassmorphism.
+   - Micro-interactions: Active states should feature a custom glow effect (e.g. `box-shadow` with purple/blue highlights).
