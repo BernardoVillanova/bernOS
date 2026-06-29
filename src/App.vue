@@ -29,9 +29,10 @@ import VSCodeApp from './components/apps/VSCodeApp.vue'
 import FilesApp from './components/apps/FilesApp.vue'
 import MailApp from './components/apps/MailApp.vue'
 import SpotifyApp from './components/apps/SpotifyApp.vue'
+import LocalStackApp from './components/apps/LocalStackApp.vue'
 
 // Import icons for desktop icons
-import { Terminal, Code, Folder, Mail, Music } from 'lucide-vue-next'
+import { Terminal, Code, Folder, Mail, Music, Cloud } from 'lucide-vue-next'
 
 // Mapping window ID to component
 const getAppComponent = (id: string) => {
@@ -41,6 +42,7 @@ const getAppComponent = (id: string) => {
     case 'files': return FilesApp
     case 'mail': return MailApp
     case 'spotify': return SpotifyApp
+    case 'localstack': return LocalStackApp
     default: return null
   }
 }
@@ -53,6 +55,7 @@ const getAppIcon = (id: string) => {
     case 'files': return Folder
     case 'mail': return Mail
     case 'spotify': return Music
+    case 'localstack': return Cloud
     default: return Folder
   }
 }
@@ -64,6 +67,7 @@ const getAppIconColor = (id: string) => {
     case 'files': return 'text-amber-400'
     case 'mail': return 'text-sky-300'
     case 'spotify': return 'text-green-400'
+    case 'localstack': return 'text-purple-400'
     default: return 'text-brand-orange'
   }
 }

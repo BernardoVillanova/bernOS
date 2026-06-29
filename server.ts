@@ -35,8 +35,101 @@ db.run(`
   )
 `);
 
+db.run(`
+  CREATE TABLE IF NOT EXISTS terraform_resources (
+    id INTEGER PRIMARY KEY,
+    service_name TEXT UNIQUE NOT NULL,
+    resource_key TEXT,
+    aws_category TEXT,
+    icon_color TEXT,
+    is_pro INTEGER DEFAULT 0,
+    curiosity_title TEXT,
+    curiosity_content TEXT,
+    display_order INTEGER,
+    column_position INTEGER
+  )
+`);
+
 const GITHUB_USER = process.env.GITHUB_USER || "BernardoVillanova";
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+
+// Seed local resources
+function seedTerraformResources() {
+  const count = db.prepare("SELECT count(*) as count FROM terraform_resources").get() as { count: number };
+  if (count.count > 0) return;
+
+  console.log("[API] Seeding terraform_resources table with AWS services and curiosities.");
+  const services = [
+    // Column 1
+    { name: "AppSync", key: "", cat: "App Integration", color: "pink", pro: 1, title: "", content: "", order: 1, col: 1 },
+    { name: "API Gateway", key: "aws_api_gateway.api", cat: "App Integration", color: "pink", pro: 0, title: "Como entro em um novo time", content: "Eu sou uma pessoa introvertida, então demoro um pouco para me adaptar ao ambiente. Mas na maioria das vezes sou a pessoa que escuta, entende e vou conhecendo cada um e interagindo com cada um.", order: 2, col: 1 },
+    { name: "SQS", key: "aws_sqs_queue.curiosidades", cat: "App Integration", color: "pink", pro: 0, title: "Fatos aleatórios", content: "Sou viciado em ler, minha média de livros costuma ser algo em torno de 30 livros por anos e mais de 15 mil páginas (Uso o Skoob para acompanhar)", order: 3, col: 1 },
+    { name: "SNS", key: "", cat: "App Integration", color: "pink", pro: 0, title: "", content: "", order: 4, col: 1 },
+    { name: "Step Functions", key: "", cat: "App Integration", color: "pink", pro: 0, title: "", content: "", order: 5, col: 1 },
+    { name: "EventBridge", key: "aws_eventbridge.events", cat: "App Integration", color: "pink", pro: 0, title: "O que me fez virar DevOps", content: "Minha curiosidade sempre me moveu para frente, logo quando comecei o curso técnico, conheci a dita palavra 'Cultura DevOps', uma profissão que une a codificação com a infraestrutura e eu que havia começado a mexer com AWS achei um máximo, dito e feito, minha primeira experiência profissional acabou sendo DevOps e desde então estou por aí kkkkk.", order: 6, col: 1 },
+    { name: "EC2", key: "aws_ec2_instance.sonhos", cat: "Compute", color: "orange", pro: 0, title: "Onde quero chegar", content: "Atualmente minha maior meta pessoal é comprar minha casa e/ou AP e profissional, diria que é não parar de ter a curiosidade que tenho, para conseguir me adaptar com a área de T.I.", order: 7, col: 1 },
+    { name: "Lambda", key: "aws_lambda_function.hobbies", cat: "Compute", color: "orange", pro: 0, title: "Fora do terminal", content: "Fora do terminal: jogo xadrez (Elo ~1200 no Chess.com), jogo basquete, e tento aprender coisas novas, como tocar teclado, violão e por ai vai.", order: 8, col: 1 },
+    { name: "ECS", key: "", cat: "Compute", color: "orange", pro: 1, title: "", content: "", order: 9, col: 1 },
+    { name: "ECR", key: "", cat: "Compute", color: "orange", pro: 1, title: "", content: "", order: 10, col: 1 },
+
+    // Column 2
+    { name: "CloudFormation", key: "", cat: "Management / Governance", color: "pink", pro: 0, title: "", content: "", order: 1, col: 2 },
+    { name: "CloudWatch Logs", key: "", cat: "Management / Governance", color: "pink", pro: 0, title: "", content: "", order: 2, col: 2 },
+    { name: "CloudWatch", key: "", cat: "Management / Governance", color: "pink", pro: 0, title: "", content: "", order: 3, col: 2 },
+    { name: "Systems Manager", key: "", cat: "Management / Governance", color: "pink", pro: 0, title: "", content: "", order: 4, col: 2 },
+    { name: "CloudTrail", key: "", cat: "Management / Governance", color: "pink", pro: 1, title: "", content: "", order: 5, col: 2 },
+    { name: "SES", key: "aws_ses_email.sender", cat: "Business Applications", color: "pink", pro: 0, title: "Primeiro emprego em tech", content: "Meu primeiro emprego na área de T.I já foi como DevOps, atuava como meio período por conta da minha faculdade.", order: 6, col: 2 },
+
+    // Column 3
+    { name: "Cognito", key: "", cat: "Security Identity Compliance", color: "purple", pro: 1, title: "", content: "", order: 1, col: 3 },
+    { name: "Secrets Manager", key: "", cat: "Security Identity Compliance", color: "purple", pro: 0, title: "", content: "", order: 2, col: 3 },
+    { name: "KMS", key: "", cat: "Security Identity Compliance", color: "purple", pro: 0, title: "", content: "", order: 3, col: 3 },
+    { name: "IAM", key: "", cat: "Security Identity Compliance", color: "purple", pro: 0, title: "", content: "", order: 4, col: 3 },
+    { name: "S3", key: "aws_s3_bucket.origem", cat: "Storage", color: "orange", pro: 0, title: "Minha primeira linha de código", content: "Minha primeira linha de código foi um console.log que coloquei em algum site, enquanto jogava ClickJogo", order: 5, col: 3 },
+    { name: "Backup", key: "", cat: "Storage", color: "orange", pro: 1, title: "", content: "", order: 6, col: 3 },
+    { name: "SageMaker", key: "", cat: "Machine Learning", color: "purple", pro: 1, title: "", content: "", order: 7, col: 3 },
+
+    // Column 4
+    { name: "DynamoDB", key: "aws_dynamodb_table.valores", cat: "Database", color: "purple", pro: 0, title: "O que me move", content: "Agora abrindo meu coração kkk, o que me move é ajudar pessoas, sabe aquela sensação de pertencimento quando você faz algo que gosta, um sentido de gratificante, é o que sinto quando vejo que consegui ajudar alguém, seja ouvindo, conversando e até mesmo aconselhando, me sinto bem. Talvez não seja uma motivação de trabalho, mas é o que me faz ser feliz.", order: 1, col: 4 },
+    { name: "RDS", key: "", cat: "Database", color: "purple", pro: 1, title: "", content: "", order: 2, col: 4 },
+    { name: "ElastiCache", key: "", cat: "Database", color: "purple", pro: 1, title: "", content: "", order: 3, col: 4 },
+    { name: "Timestream", key: "", cat: "Database", color: "purple", pro: 1, title: "", content: "", order: 4, col: 4 },
+    { name: "Athena", key: "", cat: "Analytics", color: "purple", pro: 1, title: "", content: "", order: 5, col: 4 },
+    { name: "Kinesis", key: "", cat: "Analytics", color: "purple", pro: 0, title: "", content: "", order: 6, col: 4 },
+    { name: "Kafka", key: "", cat: "Analytics", color: "purple", pro: 1, title: "", content: "", order: 7, col: 4 },
+    { name: "Glue", key: "", cat: "Analytics", color: "purple", pro: 1, title: "", content: "", order: 8, col: 4 },
+    { name: "Route 53", key: "aws_route53_record.dns", cat: "Analytics", color: "purple", pro: 0, title: "Onde estou agora", content: "Onde estou agora: Rio Claro, SP, Brasil, trabalhando híbrido/remoto, disponível para oportunidades CLT/PJ. E tenho experiência fora do Brasil também.", order: 9, col: 4 }
+  ];
+
+  const insert = db.prepare(`
+    INSERT OR REPLACE INTO terraform_resources (
+      service_name, resource_key, aws_category, icon_color, is_pro, curiosity_title, curiosity_content, display_order, column_position
+    ) VALUES (
+      $name, $key, $cat, $color, $pro, $title, $content, $order, $col
+    )
+  `);
+
+  const transaction = db.transaction((list) => {
+    for (const item of list) {
+      insert.run({
+        $name: item.name,
+        $key: item.key,
+        $cat: item.cat,
+        $color: item.color,
+        $pro: item.pro,
+        $title: item.title,
+        $content: item.content,
+        $order: item.order,
+        $col: item.col
+      });
+    }
+  });
+
+  transaction(services);
+  console.log(`[API] Seeded ${services.length} LocalStack services.`);
+}
+
+seedTerraformResources();
 
 // Query merged repositories from local DB
 function queryMergedRepos() {
@@ -355,6 +448,12 @@ const server = Bun.serve({
       if (path === "/api/github/repos" && method === "GET") {
         const repos = await getRepos();
         return new Response(JSON.stringify(repos), { headers });
+      }
+
+      // GET /api/terraform
+      if (path === "/api/terraform" && method === "GET") {
+        const resources = db.prepare("SELECT * FROM terraform_resources ORDER BY column_position, display_order").all();
+        return new Response(JSON.stringify(resources), { headers });
       }
 
       // POST /api/github/refresh

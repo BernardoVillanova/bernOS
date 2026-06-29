@@ -93,12 +93,28 @@ export const useWindowStore = defineStore('window', {
         height: 500,
         minWidth: 500,
         minHeight: 350,
+      },
+      {
+        id: 'localstack',
+        title: 'LocalStack Desktop',
+        icon: 'cloud',
+        isOpen: false,
+        isMinimized: false,
+        isMaximized: false,
+        zIndex: 1,
+        x: 120,
+        y: 60,
+        width: 960,
+        height: 580,
+        minWidth: 700,
+        minHeight: 450,
       }
     ] as WindowState[],
     maxZIndex: 10,
     activeWindowId: 'terminal' as string | null,
     filesCurrentPath: ['Home'] as string[],
-    activeVSCodeFileKey: 'README.md' as string
+    activeVSCodeFileKey: 'README.md' as string,
+    localstackStatus: 'idle' as 'idle' | 'running' | 'stopped'
   }),
   actions: {
     openWindow(id: string) {

@@ -23,6 +23,14 @@ const vimInputField = ref<HTMLInputElement | null>(null)
 // Sudo Prompt states
 const isSudoPrompt = ref(false)
 
+// Terraform states
+const tfInitDone = ref(false)
+const tfPlanDone = ref(false)
+const tfApplied = ref(false)
+const isTfApplyPrompt = ref(false)
+const isTfDestroyPrompt = ref(false)
+const isTfRunning = ref(false)
+
 const windowStore = useWindowStore()
 
 const bootLines = [
@@ -124,7 +132,7 @@ const runHireMeSequence = async () => {
   }
 }
 
-const handleCommand = () => {
+const handleCommand = async () => {
   const cmd = currentInput.value.trim()
   if (!cmd) return
 
@@ -138,6 +146,90 @@ const handleCommand = () => {
     isSudoPrompt.value = false
     currentInput.value = ''
     runHireMeSequence()
+    return
+  }
+
+  // Handle terraform apply prompt
+  if (isTfApplyPrompt.value) {
+    isTfApplyPrompt.value = false
+    terminalHistory.value.push({ type: 'input', text: `  Enter a value: ${cmd}` })
+    currentInput.value = ''
+    if (cmd.toLowerCase() === 'yes') {
+      isTfRunning.value = true
+      const applyResources = [
+        'aws_iam_role.principios',
+        'aws_s3_bucket.origem',
+        'aws_dynamodb_table.valores',
+        'aws_lambda_function.hobbies',
+        'aws_ec2_instance.sonhos',
+        'aws_cloudwatch.aprendizados',
+        'aws_sqs_queue.curiosidades',
+        'aws_sns_topic.contato'
+      ]
+      terminalHistory.value.push({ type: 'output', text: '' })
+      for (const res of applyResources) {
+        terminalHistory.value.push({ type: 'output', text: `${res}: Creating...` })
+        scrollToBottom()
+        await new Promise(r => setTimeout(r, 250 + Math.random() * 200))
+        terminalHistory.value.push({ type: 'output', text: `${res}: Creation complete after ${(Math.random() * 3 + 1).toFixed(0)}s` })
+        scrollToBottom()
+      }
+      terminalHistory.value.push({ type: 'output', text: '' })
+      terminalHistory.value.push({ type: 'output', text: `Apply complete! Resources: ${applyResources.length} added, 0 changed, 0 destroyed.` })
+      terminalHistory.value.push({ type: 'output', text: '' })
+      terminalHistory.value.push({ type: 'output', text: '[abrindo LocalStack Desktop...]' })
+      scrollToBottom()
+      tfApplied.value = true
+      isTfRunning.value = false
+      windowStore.localstackStatus = 'running'
+      windowStore.openWindow('localstack')
+    } else {
+      terminalHistory.value.push({ type: 'output', text: 'Apply cancelled.' })
+    }
+    scrollToBottom()
+    return
+  }
+
+  // Handle terraform destroy prompt
+  if (isTfDestroyPrompt.value) {
+    isTfDestroyPrompt.value = false
+    terminalHistory.value.push({ type: 'input', text: `  Enter 'yes' to confirm: ${cmd}` })
+    currentInput.value = ''
+    if (cmd.toLowerCase() === 'yes') {
+      isTfRunning.value = true
+      const destroyResources = [
+        'aws_sns_topic.contato',
+        'aws_sqs_queue.curiosidades',
+        'aws_cloudwatch.aprendizados',
+        'aws_ec2_instance.sonhos',
+        'aws_lambda_function.hobbies',
+        'aws_dynamodb_table.valores',
+        'aws_s3_bucket.origem',
+        'aws_iam_role.principios'
+      ]
+      terminalHistory.value.push({ type: 'output', text: '' })
+      for (const res of destroyResources) {
+        terminalHistory.value.push({ type: 'output', text: `Destroying ${res}...` })
+        scrollToBottom()
+        await new Promise(r => setTimeout(r, 200 + Math.random() * 150))
+      }
+      terminalHistory.value.push({ type: 'output', text: 'aws_s3_bucket.origem: Still destroying... [3s]' })
+      scrollToBottom()
+      await new Promise(r => setTimeout(r, 800))
+      terminalHistory.value.push({ type: 'output', text: '' })
+      terminalHistory.value.push({ type: 'output', text: 'Destroy complete! But you can always run terraform apply again.' })
+      terminalHistory.value.push({ type: 'output', text: 'Até a próxima. 👋' })
+      scrollToBottom()
+      isTfRunning.value = false
+      tfApplied.value = false
+      tfPlanDone.value = false
+      tfInitDone.value = false
+      windowStore.localstackStatus = 'stopped'
+      windowStore.closeWindow('localstack')
+    } else {
+      terminalHistory.value.push({ type: 'output', text: 'Destroy cancelled.' })
+    }
+    scrollToBottom()
     return
   }
 
@@ -161,7 +253,10 @@ const handleCommand = () => {
   - contact          → email, linkedin, github
   - kubectl get pods → lista experiências de trabalho como pods K8s
   - docker ps        → lista experiências de trabalho como containers Docker
-  - terraform plan   → inicia o módulo LocalStack de curiosidades
+  - terraform init   → inicializa o provedor AWS local
+  - terraform plan   → mostra o plano de execução com recursos
+  - terraform apply  → aplica e abre o LocalStack Desktop
+  - terraform destroy → destrói os recursos e fecha o LocalStack
   - clear            → limpa o terminal
 
 Easter eggs:
@@ -302,54 +397,110 @@ f6a1b2c3d4e5   fl-group/devops:latest              "/entrypoint.sh..."      54 m
       }
       break
     case 'terraform':
-      if (args[1] === 'plan') {
-        terminalHistory.value.push({
-          type: 'output',
-          text: `Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
-  + create
-
-Terraform will perform the following actions:
-
-  # localstack_curiosity.coffee_consumption will be created
-  + resource "localstack_curiosity" "coffee_consumption" {
-      + id       = (known after apply)
-      + level    = "unlimited ☕"
-      + type     = "Dark Roast"
-      + effect   = "Increases code quality and speed"
-    }
-
-  # localstack_curiosity.editor_preference will be created
-  + resource "localstack_curiosity" "editor_preference" {
-      + id       = (known after apply)
-      + editor   = "Neovim / Vim"
-      + comment  = "I use Vim btw"
-    }
-
-  # localstack_curiosity.caffeine_converter will be created
-  + resource "localstack_curiosity" "caffeine_converter" {
-      + id       = (known after apply)
-      + input    = "Coffee"
-      + output   = "DevOps Pipelines & Clean Code"
-    }
-
-  # localstack_curiosity.home_office_setup will be created
-  + resource "localstack_curiosity" "home_office_setup" {
-      + id       = (known after apply)
-      + monitors = 2
-      + OS       = "CachyOS / Arch Linux"
-      + audio    = "Synthwave/Metal playlist active"
-    }
-
-Plan: 4 to add, 0 to change, 0 to destroy.
-
-─────────────────────────────────────────────────────────────────────────────────────────────
-
-Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly these actions if you run "terraform apply".`
-        })
+      if (isTfRunning.value) {
+        terminalHistory.value.push({ type: 'error', text: 'Terraform is already running. Please wait.' })
+        break
+      }
+      if (args[1] === 'init') {
+        isTfRunning.value = true
+        currentInput.value = ''
+        scrollToBottom()
+        const initLines = [
+          '',
+          'Initializing the backend...',
+          'Initializing provider plugins...',
+          '- Finding hashicorp/aws versions matching "~> 5.0"...',
+          '- Installing hashicorp/aws v5.31.0...',
+          '- Installed hashicorp/aws v5.31.0 (signed by HashiCorp)',
+          '',
+          'Terraform has been successfully initialized!',
+          '',
+          'You may now begin working with Terraform. Try running "terraform plan" to see',
+          'any changes that are required for your infrastructure.'
+        ]
+        for (const line of initLines) {
+          await new Promise(r => setTimeout(r, 120 + Math.random() * 200))
+          terminalHistory.value.push({ type: 'output', text: line })
+          scrollToBottom()
+        }
+        tfInitDone.value = true
+        isTfRunning.value = false
+      } else if (args[1] === 'plan') {
+        if (!tfInitDone.value) {
+          terminalHistory.value.push({ type: 'error', text: 'Error: Terraform not initialized. Run "terraform init" first.' })
+          break
+        }
+        isTfRunning.value = true
+        currentInput.value = ''
+        scrollToBottom()
+        const planHeader = [
+          '',
+          'Terraform used the selected providers to generate the following',
+          'execution plan. Resource actions are indicated with the following symbols:',
+          '  + create',
+          '',
+          'Terraform will perform the following actions:',
+          ''
+        ]
+        for (const line of planHeader) {
+          await new Promise(r => setTimeout(r, 60 + Math.random() * 80))
+          terminalHistory.value.push({ type: 'output', text: line })
+          scrollToBottom()
+        }
+        const resources = [
+          { key: 'aws_s3_bucket.origem', comment: 'minha-historia' },
+          { key: 'aws_lambda_function.hobbies', comment: 'quem-sou-fora-do-trabalho' },
+          { key: 'aws_dynamodb_table.valores', comment: 'o-que-me-move' },
+          { key: 'aws_ec2_instance.sonhos', comment: 'onde-quero-chegar' },
+          { key: 'aws_iam_role.principios', comment: 'como-trabalho' },
+          { key: 'aws_cloudwatch.aprendizados', comment: 'o-que-aprendi' },
+          { key: 'aws_sqs_queue.curiosidades', comment: 'fatos-aleatorios' },
+          { key: 'aws_sns_topic.contato', comment: 'fale-comigo' }
+        ]
+        for (const res of resources) {
+          await new Promise(r => setTimeout(r, 100 + Math.random() * 80))
+          terminalHistory.value.push({ type: 'output', text: `  + ${res.key.padEnd(42)} # "${res.comment}"` })
+          scrollToBottom()
+        }
+        const planFooter = [
+          '',
+          `Plan: ${resources.length} to add, 0 to change, 0 to destroy.`,
+          '',
+          '─────────────────────────────────────────────────────────────────────────',
+          '',
+          'Note: Run "terraform apply" to execute this plan.'
+        ]
+        for (const line of planFooter) {
+          await new Promise(r => setTimeout(r, 50))
+          terminalHistory.value.push({ type: 'output', text: line })
+          scrollToBottom()
+        }
+        tfPlanDone.value = true
+        isTfRunning.value = false
+      } else if (args[1] === 'apply') {
+        if (!tfPlanDone.value) {
+          terminalHistory.value.push({ type: 'error', text: 'Error: No plan available. Run "terraform plan" first.' })
+          break
+        }
+        if (tfApplied.value) {
+          terminalHistory.value.push({ type: 'output', text: 'No changes. Infrastructure is up-to-date.' })
+          break
+        }
+        terminalHistory.value.push({ type: 'output', text: `\nDo you want to perform these actions?\n  Terraform will perform these actions as described above.\n  Only 'yes' will be accepted to approve.\n\n  Enter a value: ` })
+        isTfApplyPrompt.value = true
+        scrollToBottom()
+      } else if (args[1] === 'destroy') {
+        if (!tfApplied.value) {
+          terminalHistory.value.push({ type: 'error', text: 'Error: No resources to destroy. Run "terraform apply" first.' })
+          break
+        }
+        terminalHistory.value.push({ type: 'output', text: `\nTerraform will destroy all your resources about me.\nAre you sure? This action cannot be undone.\n\nEnter 'yes' to confirm: ` })
+        isTfDestroyPrompt.value = true
+        scrollToBottom()
       } else {
         terminalHistory.value.push({
           type: 'error',
-          text: `Erro: Comando terraform inválido. Tente 'terraform plan'`
+          text: `Uso: terraform <init|plan|apply|destroy>`
         })
       }
       break
