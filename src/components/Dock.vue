@@ -36,7 +36,7 @@ const dockItems = [
   { id: 'vscode', name: 'VSCode', icon: Code, color: 'text-blue-400 hover:text-blue-300' },
   { id: 'files', name: 'Files', icon: Folder, color: 'text-amber-400 hover:text-amber-300' },
   { id: 'mail', name: 'Contato', icon: Mail, color: 'text-sky-300 hover:text-sky-200' },
-  { id: 'spotify', name: 'Spotify', icon: Music, color: 'text-green-400 hover:text-green-300' },
+  { id: 'spotify', name: 'Music Player', icon: Music, color: 'text-green-400 hover:text-green-300' },
   { id: 'localstack', name: 'LocalStack', icon: Cloud, color: 'text-purple-400 hover:text-purple-300' }
 ]
 </script>

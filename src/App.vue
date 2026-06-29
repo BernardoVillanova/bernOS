@@ -146,7 +146,7 @@ const getAppIconColor = (id: string) => {
               <ul class="flex flex-col gap-2 select-text">
                 <li class="flex gap-2 select-text">
                   <span class="text-brand-orange font-bold select-text">1.</span>
-                  <span class="select-text"><strong>Dock (Abaixo)</strong>: Clique nos ícones coloridos para abrir aplicativos (Terminal, VSCode, Files, Contato, Spotify).</span>
+                  <span class="select-text"><strong>Dock (Abaixo)</strong>: Clique nos ícones coloridos para abrir aplicativos (Terminal, VSCode, Files, Contato, Music Player).</span>
                 </li>
                 <li class="flex gap-2 select-text">
                   <span class="text-brand-orange font-bold select-text">2.</span>
