@@ -84,25 +84,18 @@ const filesDb: Record<string, FileItem> = {
     language: 'typescript',
     content: `// [2020] Início nos Estudos & ETEC
 // Julho de 2020 — Dei meus primeiros passos na ETEC de Rio Claro no curso de Desenvolvimento de Sistemas.
-// Foco total em lógica de programação, algoritmos, controle de versão com Git/GitHub, redes e Linux básico.
-// Participei da XVII Maratona FHO de Programação no primeiro ano de faculdade e conquistei o 2° lugar!
-// Foi o marco inicial da minha dedicação à engenharia e automação.
+// Tive meu primeiro contato com AWS, Android Studio, Java e algoritmos em si.
+// Meus estudos este ano foram exploratórios, sem premiações ou certificações.
 
 const inicioETEC: AcademicStart = {
   period: 'Julho de 2020 - Dezembro de 2021',
   location: 'ETEC Rio Claro, SP',
   course: 'Técnico em Desenvolvimento de Sistemas',
   operatingSystem: 'Linux (Ubuntu / Debian)',
-  honors: '2° Lugar na XVII Maratona FHO de Programação (1° ano)',
   languages: {
     portugues: 'Nativo ou Bilíngue',
     ingles: 'Professional Working Proficiency'
-  },
-  competencies: [
-    'Administração de sistemas Linux (Sysadmin)',
-    'Lógica de programação e algoritmos',
-    'Versionamento de código com Git e GitHub'
-  ]
+  }
 }`
   },
   'career/2021.ts': {
@@ -131,7 +124,7 @@ const primeiroTrabalho: ProfessionalDevOps = {
   academia: {
     institution: 'FHO | Fundação Hermínio Ometto',
     course: 'Bacharelado em Sistemas de Informação',
-    period: 'Janeiro de 2022 - Dezembro de 2025'
+    period: 'Janeiro de 2021 - Dezembro de 2025'
   },
   certifications: [
     'Linux Admin (LINUXtips.local)',
@@ -148,6 +141,7 @@ const primeiroTrabalho: ProfessionalDevOps = {
     content: `// [2022] DevOps Engineer na EZOps.cloud
 // Novembro de 2022 — Contratado como DevOps Engineer na EZOps.cloud (Orlando, FL, EUA - Remoto).
 // Atuei integrado em uma equipe altamente focada em processos ágeis e projetos internacionais.
+// Contato direto e conversas com clientes para alinhamento de requisitos e soluções técnicas.
 // Desenho e provisionamento de infraestrutura AWS usando CloudFormation e Terraform.
 
 const ezopsJourney: InternationalDevOps = {
@@ -156,7 +150,7 @@ const ezopsJourney: InternationalDevOps = {
   location: 'Orlando, Flórida, Estados Unidos (Remoto)',
   activities: [
     'Trabalho com equipe altamente orientada para processos ágeis',
-    'Contato com desenvolvedores e gerentes de projetos de diversas localidades do mundo, desenvolvendo soluções baseadas nas suas necessidades',
+    'Contato e conversas diretas com clientes e gerentes de projetos de diversas localidades do mundo, desenvolvendo soluções baseadas nas suas necessidades',
     'Arquitetar e provisionar ambientes de nuvem (AWS) usando IaC (CloudFormation e Terraform)',
     'Automatização e implementação de releases de código em pipelines de CI/CD',
     'Revisão e implementação das melhores práticas de segurança em ambientes DevOps provisionados'
@@ -270,35 +264,18 @@ const yebPlenoAtual: PresentState = {
     name: 'containers.yml',
     path: 'skills/containers.yml',
     language: 'yaml',
-    content: `# [Containers & Orquestração - Detalhado]
+    content: `# [Containers & Orquestração]
 # Docker e Kubernetes formam a base para a infraestrutura moderna de microsserviços.
 
-Kubernetes_Architecture:
-  proficiency: "90%"
-  experience_years: 4
-  level: "Avançado"
-  core_topics:
-    - Control_Plane: "Gestão profunda de API Server, etcd, Scheduler e Controller Manager."
-    - Pods_Networking: "VPC CNI, Calico, CoreDNS, Ingress Controllers (Nginx/ALB) e kube-proxy."
-    - Resource_Allocation: "Dimensionamento fino de limites de recursos (limits/requests) para evitar CPU throttling e OOMKilled."
-    - Scale_Resiliency: "Uso ativo de HPA (Horizontal Pod Autoscaler) e Cluster Autoscaler."
-  tooling: ["Helm Charts customizados", "ArgoCD (GitOps reconciliador)", "Kustomize", "kubectl CLI"]
+Docker:
+  details: "Criação de containers leves, escrita de Dockerfiles eficientes, multi-stage builds e Docker Compose."
 
-Docker_Ecosystem:
-  proficiency: "95%"
-  experience_years: 5
-  level: "Especialista"
-  core_topics:
-    - Image_Optimization: "Criação de imagens ultra-leves utilizando distroless, Alpine e multi-stage builds."
-    - Security_Hardening: "Execução de containers em modo rootless, gerenciamento de cap-drop/cap-add e scanning de vulnerabilidades (Trivy)."
-    - Local_Dev: "Criação de fluxos de orquestração rápidos usando Docker Compose e local volumes."
+Kubernetes:
+  details: "Orquestração de microsserviços, clusters EKS/GKE, Helm charts, ArgoCD e troubleshooting de clusters."
 
-Amazon_ECS:
-  proficiency: "85%"
-  experience_years: 3
-  level: "Avançado"
-  details:
-    - "Orquestração de containers com ECS e AWS Fargate (Serverless)."
+ECS:
+  details: "Orquestração de containers com ECS e AWS Fargate (Serverless)."
+  achievements:
     - "Criação de tasks definitions, task groups e service autoscaling."`
   },
   'skills/cloud.yml': {
@@ -352,7 +329,7 @@ Jenkins_Automation:
     - "Pipelines declarativas (Jenkinsfile) com versionamento e rollbacks automatizados."
     - "Integração de testes estáticos, testes de cobertura e ferramentas de build locais."
 
-GitOps_Philosophy:
+GitOps:
   tool: "ArgoCD para sincronização de manifests de infraestrutura declarados em repositório Git."
   benefits: "Detecção automática de drift de configuração de infraestrutura e recuperação de desastres instantânea."`
   },
@@ -610,14 +587,9 @@ const timelineData = [
     category: 'Academia',
     icon: BookOpen,
     title: 'ETEC - Técnico em Desenvolvimento de Sistemas',
-    subtitle: 'Estudos Acadêmicos Básicos',
-    desc: 'Dei meus primeiros passos em lógica de programação, algoritmos estruturados, versionamento com Git e administração inicial de servidores Linux.',
-    bulletPoints: [
-      'Administração de sistemas Linux (Sysadmin) avançada',
-      'Lógica de programação, algoritmos e estruturas de dados complexas',
-      'Versionamento de código com Git/GitHub'
-    ],
-    honors: ['2° Lugar na XVII Maratona FHO de Programação (1° ano)'],
+    subtitle: 'Início dos Estudos',
+    desc: 'Iniciei o curso técnico em Desenvolvimento de Sistemas. Tive meu primeiro contato com AWS, Android Studio, Java e algoritmos em si, com estudos de caráter exploratório.',
+    bulletPoints: [],
     colorClass: 'bg-teal-500 border-teal-500/25 text-teal-400'
   },
   {
@@ -643,9 +615,10 @@ const timelineData = [
     icon: Cpu,
     title: 'EZOps.cloud',
     subtitle: 'DevOps Engineer (EUA)',
-    desc: 'Atuei remoto para equipes de Orlando, FL, provisionando nuvem corporativa AWS em larga escala usando Terraform e CloudFormation.',
+    desc: 'Atuei de forma remota para equipes de Orlando, FL, com foco em comunicação direta com clientes internacionais para alinhar requisitos e apresentar soluções de infraestrutura na nuvem AWS.',
     bulletPoints: [
-      'Arquitetura em infraestrutura como código (IaC)',
+      'Comunicação direta e reuniões com clientes globais para alinhamento de requisitos técnicos',
+      'Arquitetar e provisionar ambientes de nuvem (AWS) usando IaC (CloudFormation e Terraform)',
       'Revisão e implementação de melhores práticas de segurança de acesso IAM e redes VPC',
       'Integração e automação de deploys em pipelines ágeis internacionais'
     ],
@@ -1168,12 +1141,9 @@ const tokenizedLines = computed<CodeLine[]>(() => {
             <div class="absolute top-[80%] left-[30%] w-96 h-96 bg-[#c678dd]/5 rounded-full blur-[100px] pointer-events-none"></div>
           </div>
 
-          <!-- LAYER 2: Parallax Year floating labels -->
+          <!-- LAYER 2: Year floating labels (aligned in sync with cards) -->
           <div
             class="absolute inset-x-0 pointer-events-none z-10"
-            :style="{
-              transform: `translateY(${timelineScrollTop * 0.5}px)`
-            }"
           >
             <div
               v-for="node in timelineData"
