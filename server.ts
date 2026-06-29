@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 
-const dbPath = join(__dirname, "bernos.db");
+const dbPath = process.env.DATABASE_PATH || join(__dirname, "bernos.db");
 const db = new Database(dbPath, { create: true });
 
 // Initialize database tables
@@ -441,6 +441,24 @@ const server = Bun.serve({
 
     if (method === "OPTIONS") {
       return new Response(null, { headers });
+    }
+
+    // Serve static files in production if path doesn't start with /api
+    if (!path.startsWith("/api")) {
+      try {
+        const filePath = join(__dirname, "dist", path === "/" ? "index.html" : path.slice(1));
+        const file = Bun.file(filePath);
+        if (await file.exists()) {
+          return new Response(file);
+        }
+        // Fallback to index.html for SPA client-side routing
+        const indexFile = Bun.file(join(__dirname, "dist", "index.html"));
+        if (await indexFile.exists()) {
+          return new Response(indexFile);
+        }
+      } catch (e) {
+        console.error("[Static Server Error]", e);
+      }
     }
 
     try {
