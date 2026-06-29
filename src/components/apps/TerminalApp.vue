@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useWindowStore } from '../../stores/windowStore'
 
 interface HistoryItem {
@@ -19,9 +19,11 @@ const isVimMode = ref(false)
 const vimInput = ref('')
 const vimCommandError = ref('')
 const vimInputField = ref<HTMLInputElement | null>(null)
+const inputField = ref<HTMLInputElement | null>(null)
 
 // Sudo Prompt states
 const isSudoPrompt = ref(false)
+const sudoAction = ref('')
 
 // Terraform states
 const tfInitDone = ref(false)
@@ -93,8 +95,7 @@ const handleVimCommand = () => {
     scrollToBottom()
     nextTick(() => {
       // Focus terminal input
-      const inputEl = document.querySelector('input[type="text"]') as HTMLInputElement
-      if (inputEl) inputEl.focus()
+      if (inputField.value) inputField.value.focus()
     })
   } else {
     vimCommandError.value = `E492: Not an editor command: ${cmd}`
@@ -110,24 +111,55 @@ const cancelVimCommand = () => {
   vimCommandError.value = ''
 }
 
-// Sudo hire-me animation
-const runHireMeSequence = async () => {
-  const hireLines = [
-    'Authenticating...',
-    'Access granted.',
-    'Starting hiring pipeline...',
-    '[1/4] Preparing offer letter... OK',
-    '[2/4] Initializing background check... OK',
-    '[3/4] Generating contract... OK',
-    '[4/4] Finalizing onboarding... OK',
-    '',
-    'Parabéns! Bernardo Villanova foi contratado! 🎉',
-    'Entre em contato pelo email bernardo.villasantana@gmail.com para formalizar a proposta.'
+// Click and key focus handlers
+const focusTerminalInput = () => {
+  if (window.getSelection()?.toString()) return
+
+  if (isVimMode.value) {
+    if (vimInputField.value) {
+      vimInputField.value.focus()
+    }
+  } else {
+    if (inputField.value) {
+      inputField.value.focus()
+    }
+  }
+}
+
+const handleGlobalKeydown = (e: KeyboardEvent) => {
+  if (windowStore.activeWindowId !== 'terminal') return
+
+  if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return
+
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+
+  focusTerminalInput()
+}
+
+watch(() => windowStore.activeWindowId, (newActiveId) => {
+  if (newActiveId === 'terminal') {
+    focusTerminalInput()
+  }
+})
+
+// Sudo apt update animation
+const runAptUpdateSequence = async () => {
+  const lines = [
+    'Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease',
+    'Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]',
+    'Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]',
+    'Get:4 https://deb.bernos.dev/stable InRelease [4.820 B]',
+    'Get:5 https://deb.bernos.dev/stable/main amd64 Packages [12.4 kB]',
+    'Fetched 269 kB in 1s (210 kB/s)',
+    'Reading package lists... Done',
+    'Building dependency tree... Done',
+    'Reading state information... Done',
+    'All packages are up to date.'
   ]
   
-  for (let i = 0; i < hireLines.length; i++) {
-    await new Promise(resolve => setTimeout(resolve, i === 8 ? 600 : Math.random() * 300 + 100))
-    terminalHistory.value.push({ type: 'output', text: hireLines[i] })
+  for (let i = 0; i < lines.length; i++) {
+    await new Promise(resolve => setTimeout(resolve, i >= 6 ? 300 : Math.random() * 200 + 100))
+    terminalHistory.value.push({ type: 'output', text: lines[i] })
     scrollToBottom()
   }
 }
@@ -145,7 +177,10 @@ const handleCommand = async () => {
     terminalHistory.value.push({ type: 'input', text: `[sudo] password for guest: *******` })
     isSudoPrompt.value = false
     currentInput.value = ''
-    runHireMeSequence()
+    if (sudoAction.value === 'apt-update') {
+      runAptUpdateSequence()
+    }
+    sudoAction.value = ''
     return
   }
 
@@ -260,9 +295,7 @@ const handleCommand = async () => {
   - clear            → limpa o terminal
 
 Easter eggs:
-  - vim portfolio     → abre o portfólio em um editor Vim interativo
-  - git log --oneline → exibe histórico de commits do portfólio
-  - sudo hire-me      → inicia o pipeline de contratação`
+  - vim portfolio     → abre o portfólio em um editor Vim interativo`
       })
       break
     case 'whoami':
@@ -533,17 +566,34 @@ b7a6f5e feat: initialize BernOS kernel with custom boot sequence`
       }
       break
     case 'sudo':
-      if (args[1] === 'hire-me') {
-        isSudoPrompt.value = true
-      } else {
-        terminalHistory.value.push({
-          type: 'error',
-          text: `Erro: Comando sudo inválido. Tente 'sudo hire-me'`
-        })
+      {
+        const sudoSubCmd = args.slice(1).join(' ')
+        if (sudoSubCmd === 'apt update' || sudoSubCmd === 'apt-get update') {
+          isSudoPrompt.value = true
+          sudoAction.value = 'apt-update'
+        } else {
+          terminalHistory.value.push({
+            type: 'error',
+            text: `Erro: Comando sudo inválido. Tente 'sudo apt update'`
+          })
+        }
       }
       break
     case 'clear':
       terminalHistory.value = []
+      break
+    case 'ls':
+      terminalHistory.value.push({
+        type: 'output',
+        text: 'boa, mas não tem nada'
+      })
+      break
+    case 'shutdown':
+    case 'restart':
+      terminalHistory.value.push({
+        type: 'output',
+        text: 'ei, não vi graça nisso.'
+      })
       break
     case 'neofetch':
       printNeofetch()
@@ -580,11 +630,16 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   runBootSequence()
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
 <template>
-  <div class="flex-grow flex flex-col font-mono text-sm leading-relaxed p-4 h-full bg-[#07000d]/95 relative overflow-hidden select-text select-text-safe">
+  <div class="flex-grow flex flex-col font-mono text-sm leading-relaxed p-4 h-full bg-[#07000d]/95 relative overflow-hidden select-text select-text-safe" @click="focusTerminalInput">
     <!-- Mock Vim editor -->
     <div v-if="isVimMode" class="flex-grow flex flex-col h-full text-gray-300 relative select-text">
       <div class="flex-grow overflow-y-auto pr-1 select-text leading-tight text-xs sm:text-sm">
@@ -636,7 +691,28 @@ onMounted(() => {
           <span class="text-gray-400 select-text">{{ item.text }}</span>
         </template>
         <template v-else-if="item.type === 'input'">
-          <span class="text-brand-orange font-semibold select-text">{{ item.text }}</span>
+          <template v-if="item.text.startsWith('guest@bernos:~$ ')">
+            <span class="text-green-400 font-semibold select-text">guest@bernos</span>
+            <span class="text-gray-300 select-text">:</span>
+            <span class="text-blue-400 font-semibold select-text">~</span>
+            <span class="text-gray-300 select-text">$ </span>
+            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(16) }}</span>
+          </template>
+          <template v-else-if="item.text.startsWith('[sudo] password for guest: ')">
+            <span class="text-gray-300 font-semibold select-text">[sudo] password for guest: </span>
+            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(27) }}</span>
+          </template>
+          <template v-else-if="item.text.startsWith('  Enter a value: ')">
+            <span class="text-gray-300 font-semibold select-text">  Enter a value: </span>
+            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(17) }}</span>
+          </template>
+          <template v-else-if="item.text.startsWith('  Enter \'yes\' to confirm: ')">
+            <span class="text-gray-300 font-semibold select-text">  Enter 'yes' to confirm: </span>
+            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(26) }}</span>
+          </template>
+          <template v-else>
+            <span class="text-gray-200 select-text font-normal">{{ item.text }}</span>
+          </template>
         </template>
         <template v-else-if="item.type === 'output'">
           <span class="text-gray-300 select-text">{{ item.text }}</span>
@@ -677,11 +753,17 @@ onMounted(() => {
       </div>
 
       <!-- Current Input Prompt -->
-      <div v-if="!isBooting" class="flex items-center gap-2 mt-2 shrink-0 select-text w-full">
-        <span class="text-brand-orange font-semibold shrink-0 select-text">
-          {{ isSudoPrompt ? '[sudo] password for guest: ' : 'guest@bernos:~$ ' }}
-        </span>
-        <div class="relative flex-grow flex items-center select-text">
+      <div v-if="!isBooting" class="flex items-center gap-1 mt-2 shrink-0 select-text w-full">
+        <template v-if="isSudoPrompt">
+          <span class="text-gray-300 font-semibold shrink-0 select-text">[sudo] password for guest: </span>
+        </template>
+        <template v-else>
+          <span class="text-green-400 font-semibold shrink-0 select-text">guest@bernos</span>
+          <span class="text-gray-300 shrink-0 select-text">:</span>
+          <span class="text-blue-400 font-semibold shrink-0 select-text">~</span>
+          <span class="text-gray-300 shrink-0 select-text">$</span>
+        </template>
+        <div class="relative flex-grow flex items-center select-text ml-1">
           <input
             v-model="currentInput"
             :type="isSudoPrompt ? 'password' : 'text'"
