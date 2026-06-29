@@ -96,7 +96,9 @@ export const useWindowStore = defineStore('window', {
       }
     ] as WindowState[],
     maxZIndex: 10,
-    activeWindowId: 'terminal' as string | null
+    activeWindowId: 'terminal' as string | null,
+    filesCurrentPath: ['Home'] as string[],
+    activeVSCodeFileKey: 'README.md' as string
   }),
   actions: {
     openWindow(id: string) {

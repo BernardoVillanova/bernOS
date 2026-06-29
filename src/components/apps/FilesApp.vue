@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useWindowStore } from '../../stores/windowStore'
 import { Folder, FileText, ChevronRight, Home, ArrowLeft } from 'lucide-vue-next'
 
@@ -14,31 +14,37 @@ const store = useWindowStore()
 const currentPath = ref<string[]>(['Home'])
 const selectedItem = ref<FileNode | null>(null)
 
+watch(() => store.filesCurrentPath, (newVal) => {
+  if (newVal) {
+    currentPath.value = [...newVal]
+  }
+}, { deep: true, immediate: true })
+
 // Flat mock directories
 const directories: Record<string, FileNode[]> = {
   'Home': [
     { name: 'Documents', type: 'folder' },
     { name: 'Projects', type: 'folder' },
-    { name: 'ContactInfo.txt', type: 'file', size: '1 KB', contentKey: 'about_me.md' }
+    { name: 'ContactInfo.txt', type: 'file', size: '1 KB', contentKey: 'README.md' }
   ],
   'Home > Documents': [
     { name: 'Bernardo_CV.pdf', type: 'file', size: '245 KB' },
-    { name: 'about_me.md', type: 'file', size: '1.2 KB', contentKey: 'about_me.md' },
-    { name: 'skills.json', type: 'file', size: '640 B', contentKey: 'skills.json' }
+    { name: 'about_me.md', type: 'file', size: '1.2 KB', contentKey: 'README.md' },
+    { name: 'skills.json', type: 'file', size: '640 B', contentKey: 'skills/containers.yml' }
   ],
   'Home > Projects': [
     { name: 'Terraform-AWS-IaC', type: 'folder' },
     { name: 'PipelineWithActions', type: 'folder' },
-    { name: 'experience.yaml', type: 'file', size: '1.5 KB', contentKey: 'experience.yaml' }
+    { name: 'experience.yaml', type: 'file', size: '1.5 KB', contentKey: 'career/2022.ts' }
   ],
   'Home > Projects > Terraform-AWS-IaC': [
-    { name: 'main.tf', type: 'file', size: '4 KB', contentKey: 'skills.json' },
-    { name: 'variables.tf', type: 'file', size: '2 KB', contentKey: 'skills.json' },
-    { name: 'README.md', type: 'file', size: '5 KB', contentKey: 'about_me.md' }
+    { name: 'main.tf', type: 'file', size: '4 KB', contentKey: 'skills/iac.yml' },
+    { name: 'variables.tf', type: 'file', size: '2 KB', contentKey: 'skills/iac.yml' },
+    { name: 'README.md', type: 'file', size: '5 KB', contentKey: 'README.md' }
   ],
   'Home > Projects > PipelineWithActions': [
-    { name: 'ci-cd.yaml', type: 'file', size: '3 KB', contentKey: 'experience.yaml' },
-    { name: 'package.json', type: 'file', size: '1 KB', contentKey: 'skills.json' }
+    { name: 'ci-cd.yaml', type: 'file', size: '3 KB', contentKey: 'skills/cicd.yml' },
+    { name: 'package.json', type: 'file', size: '1 KB', contentKey: 'skills/containers.yml' }
   ]
 }
 
@@ -68,7 +74,8 @@ const handleItemDblClick = (item: FileNode) => {
     navigateToFolder(item.name)
   } else if (item.type === 'file') {
     if (item.contentKey) {
-      // Open file in VSCode app window
+      // Set active file key for VSCode and open VSCode window
+      store.activeVSCodeFileKey = item.contentKey
       store.openWindow('vscode')
     } else {
       alert(`Visualizando arquivo: ${item.name}`)
