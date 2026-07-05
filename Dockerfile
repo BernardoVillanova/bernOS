@@ -1,7 +1,7 @@
 # ==========================================
 # STAGE 1: Build frontend assets
 # ==========================================
-FROM oven/bun:1.1-alpine AS builder
+FROM oven/bun:1.2 AS builder
 WORKDIR /app
 
 # Copy dependency configs
@@ -17,7 +17,7 @@ RUN bun run build
 # ==========================================
 # STAGE 2: Run server and serve entire app
 # ==========================================
-FROM oven/bun:1.1-alpine AS runner
+FROM oven/bun:1.2 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

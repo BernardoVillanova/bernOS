@@ -6,16 +6,33 @@ const store = useWindowStore()
 
 const showTutorial = ref(false)
 const showInstructions = ref(false)
+const showMobileWarning = ref(false)
 
 const completeTutorial = () => {
   showTutorial.value = false
   localStorage.setItem('bernos_tutorial_complete', 'true')
 }
 
-onMounted(() => {
+const checkMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024
+}
+
+const dismissMobileWarning = () => {
+  showMobileWarning.value = false
   const tutorialComplete = localStorage.getItem('bernos_tutorial_complete')
   if (!tutorialComplete) {
     showTutorial.value = true
+  }
+}
+
+onMounted(() => {
+  if (checkMobile()) {
+    showMobileWarning.value = true
+  } else {
+    const tutorialComplete = localStorage.getItem('bernos_tutorial_complete')
+    if (!tutorialComplete) {
+      showTutorial.value = true
+    }
   }
 })
 import DesktopBackground from './components/DesktopBackground.vue'
@@ -32,7 +49,7 @@ import SpotifyApp from './components/apps/SpotifyApp.vue'
 import LocalStackApp from './components/apps/LocalStackApp.vue'
 
 // Import icons for desktop icons
-import { Terminal, Code, Folder, Mail, Music, Cloud } from 'lucide-vue-next'
+import { Terminal, Code, Folder, Mail, Music, Cloud, AlertTriangle } from 'lucide-vue-next'
 
 // Mapping window ID to component
 const getAppComponent = (id: string) => {
@@ -172,6 +189,36 @@ const getAppIconColor = (id: string) => {
               </button>
             </div>
           </template>
+          
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Mobile Device Warning Modal -->
+    <Transition name="tutorial-fade">
+      <div v-if="showMobileWarning" class="fixed inset-0 z-[100000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+        <div class="w-[380px] bg-[#0a0a0c]/95 border border-amber-500/30 p-6 rounded-2xl shadow-2xl flex flex-col gap-4 text-gray-200">
+          
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 mb-3">
+              <AlertTriangle class="w-6 h-6" />
+            </div>
+            <h3 class="text-sm font-bold text-white tracking-wide">Aviso de Experiência</h3>
+            <p class="text-[9px] text-amber-500 font-semibold uppercase mt-0.5 tracking-wider">Dispositivo Mobile/Tela Pequena</p>
+          </div>
+          
+          <p class="text-xs leading-relaxed text-gray-300 text-center select-text">
+            O BernOS simula um sistema operacional completo voltado para computadores. A navegação de janelas e visualização dos aplicativos não é otimizada para telas pequenas e pode ficar prejudicada.
+          </p>
+
+          <div class="flex flex-col gap-2 mt-2">
+            <button
+              class="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-lg shadow-md cursor-pointer transition active:scale-95 text-xs text-center"
+              @click="dismissMobileWarning"
+            >
+              Prosseguir mesmo assim
+            </button>
+          </div>
           
         </div>
       </div>
