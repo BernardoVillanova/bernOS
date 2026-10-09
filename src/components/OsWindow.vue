@@ -167,9 +167,9 @@ onUnmounted(() => {
     <div
       v-if="win.isOpen && !win.isMinimized"
       ref="windowRef"
-      class="absolute rounded-xl flex flex-col border overflow-hidden backdrop-blur-md transition-shadow duration-300"
+      class="absolute rounded-xl flex flex-col border overflow-hidden backdrop-blur-xl transition-shadow duration-300"
       :class="[
-        isFocused ? 'window-active border-brand-orange/30' : 'window-inactive border-white/10 bg-bg-panel/75',
+        isFocused ? 'window-active border-white/20' : 'window-inactive border-white/[0.08] bg-zinc-900/80',
         win.isMaximized ? 'top-0 left-0 w-full! h-[calc(100vh-58px)]! rounded-none border-none' : ''
       ]"
       :style="{
@@ -183,29 +183,29 @@ onUnmounted(() => {
     >
       <!-- Title bar -->
       <div
-        class="h-10 px-4 bg-black/40 border-b border-white/5 flex items-center justify-between cursor-default select-none shrink-0"
+        class="h-9 px-3.5 bg-zinc-900/95 border-b border-white/[0.08] flex items-center justify-between cursor-default select-none shrink-0"
         @mousedown="startDrag"
         @dblclick="handleTitlebarDblClick"
       >
         <!-- Windows style titlebar control dots -->
         <div class="flex items-center gap-2">
           <button
-            class="win-btn w-3.5 h-3.5 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 flex items-center justify-center text-[7px] text-[#4c0002] font-bold group relative cursor-pointer"
-            title="Close"
+            class="win-btn w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 flex items-center justify-center text-[7px] text-[#4c0002] font-bold group relative cursor-pointer"
+            title="Fechar"
             @click="store.closeWindow(props.id)"
           >
             <span class="opacity-0 group-hover:opacity-100 transition-opacity">×</span>
           </button>
           <button
-            class="win-btn w-3.5 h-3.5 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 flex items-center justify-center text-[7px] text-[#5c3e00] font-bold group relative cursor-pointer"
-            title="Minimize"
+            class="win-btn w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 flex items-center justify-center text-[7px] text-[#5c3e00] font-bold group relative cursor-pointer"
+            title="Minimizar"
             @click="store.minimizeWindow(props.id)"
           >
             <span class="opacity-0 group-hover:opacity-100 transition-opacity">-</span>
           </button>
           <button
-            class="win-btn w-3.5 h-3.5 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 flex items-center justify-center text-[7px] text-[#006504] font-bold group relative cursor-pointer"
-            title="Maximize"
+            class="win-btn w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 flex items-center justify-center text-[7px] text-[#006504] font-bold group relative cursor-pointer"
+            title="Maximizar"
             @click="store.toggleMaximizeWindow(props.id)"
           >
             <span class="opacity-0 group-hover:opacity-100 transition-opacity">⤢</span>
@@ -213,7 +213,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Title -->
-        <div class="text-xs font-semibold text-gray-300 flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2">
+        <div class="text-[11px] font-medium text-zinc-300 flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2">
           <slot name="icon"></slot>
           <span>{{ win.title }}</span>
         </div>
@@ -223,7 +223,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Content Area -->
-      <div class="flex-grow overflow-auto bg-[#0d0b1e]/90 text-gray-100 relative flex flex-col">
+      <div class="flex-grow overflow-auto bg-[#0d0e12]/95 text-zinc-100 relative flex flex-col">
         <slot></slot>
       </div>
 

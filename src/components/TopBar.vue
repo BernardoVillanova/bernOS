@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import {
-  Link,
   Radio,
   Zap,
-  Keyboard,
-  Bell,
   Wifi,
   Volume2,
   Sun,
@@ -37,12 +34,11 @@ let resourceInterval: ReturnType<typeof setInterval>
 
 const updateTime = () => {
   const now = new Date()
-  // Format: 14:20 Mon, Jun 29 (24h format)
-  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-  const weekday = now.toLocaleDateString('en-US', { weekday: 'short' })
-  const month = now.toLocaleDateString('en-US', { month: 'short' })
+  const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const weekday = now.toLocaleDateString('pt-BR', { weekday: 'short' })
+  const month = now.toLocaleDateString('pt-BR', { month: 'short' })
   const day = now.getDate()
-  timeString.value = `${time} ${weekday}, ${month} ${day}`
+  timeString.value = `${time} ${weekday}, ${day} de ${month}`
 }
 
 const generateCalendar = () => {
@@ -57,7 +53,6 @@ const generateCalendar = () => {
   const totalDays = new Date(year, month + 1, 0).getDate()
 
   const days: number[] = []
-  // Empty spaces for padding first week
   for (let i = 0; i < firstDayIndex; i++) {
     days.push(0)
   }
@@ -104,49 +99,44 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-10 w-full bg-black/65 border-b border-white/10 flex items-center justify-between px-5 z-[9999] select-none text-xs font-semibold text-brand-orange-light relative">
+  <div class="h-8 w-full bg-black/40 backdrop-blur-xl border-b border-white/[0.08] flex items-center justify-between px-4 z-[9999] select-none text-xs font-medium text-zinc-300 relative">
     
-    <!-- Left Section: Link Icon and status indicator dots -->
+    <!-- Left Section: Apple Logo / OS Brand & System Indicators -->
     <div class="flex items-center gap-3">
-      <Link class="w-4 h-4 rotate-45 stroke-[1.8] text-brand-orange-light/80" />
-      <div class="flex items-center gap-2.5 text-brand-orange/80">
-        <Radio class="w-4 h-4 stroke-[1.8]" />
-        <Zap class="w-4 h-4 stroke-[1.8]" />
-        <Keyboard class="w-4 h-4 stroke-[1.8]" />
+      <span class="font-bold tracking-tight text-zinc-100 flex items-center gap-1.5 cursor-default">
+        <span>BernOS</span>
+      </span>
+      <div class="hidden sm:flex items-center gap-2 text-zinc-500">
+        <Radio class="w-3.5 h-3.5" />
+        <Zap class="w-3.5 h-3.5" />
       </div>
     </div>
 
-    <!-- Center Section: Centered live clock trigger for Calendar -->
+    <!-- Center Section: Clean Centered live clock trigger for Calendar -->
     <div class="absolute left-1/2 -translate-x-1/2">
       <button
-        class="px-3.5 py-1.5 rounded-lg hover:bg-white/10 active:bg-white/5 text-white/95 font-mono text-xs tracking-wide transition flex items-center gap-1.5 cursor-pointer"
-        :class="showCalendar ? 'bg-white/10 text-brand-orange!' : ''"
+        class="px-2.5 py-1 rounded-md hover:bg-white/[0.06] active:bg-white/10 text-zinc-200 text-[11px] font-medium transition cursor-pointer"
+        :class="showCalendar ? 'bg-white/10 text-white' : ''"
         @click="toggleCalendar"
       >
         <span>{{ timeString }}</span>
       </button>
 
-      <!-- Calendar Dropdown panel (Centred absolute layout) -->
+      <!-- Calendar Dropdown panel -->
       <div
         v-if="showCalendar"
-        class="absolute left-1/2 -translate-x-1/2 top-9 w-[260px] bg-bg-panel/95 border border-brand-orange/20 shadow-2xl backdrop-blur-xl rounded-xl p-4 flex flex-col gap-3 z-[100000] text-gray-200"
+        class="absolute left-1/2 -translate-x-1/2 top-8 w-[250px] bg-zinc-900/90 border border-white/10 shadow-2xl backdrop-blur-2xl rounded-xl p-3.5 flex flex-col gap-2.5 z-[100000] text-zinc-200"
       >
         <!-- Month Header -->
-        <div class="flex justify-between items-center border-b border-white/5 pb-2">
-          <button class="p-0.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition"><ChevronLeft class="w-4 h-4" /></button>
-          <span class="font-bold text-xs uppercase tracking-wider text-white capitalize">{{ currentMonthName }} {{ currentYear }}</span>
-          <button class="p-0.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition"><ChevronRight class="w-4 h-4" /></button>
+        <div class="flex justify-between items-center border-b border-white/[0.08] pb-2">
+          <button class="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition"><ChevronLeft class="w-3.5 h-3.5" /></button>
+          <span class="font-semibold text-xs tracking-tight text-white capitalize">{{ currentMonthName }} {{ currentYear }}</span>
+          <button class="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition"><ChevronRight class="w-3.5 h-3.5" /></button>
         </div>
 
         <!-- Weekdays -->
-        <div class="grid grid-cols-7 text-center text-[10px] text-gray-500 font-bold uppercase">
-          <span>Dom</span>
-          <span>Seg</span>
-          <span>Ter</span>
-          <span>Qua</span>
-          <span>Qui</span>
-          <span>Sex</span>
-          <span>Sáb</span>
+        <div class="grid grid-cols-7 text-center text-[9px] text-zinc-500 font-semibold uppercase">
+          <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
         </div>
 
         <!-- Days Grid -->
@@ -158,11 +148,11 @@ onUnmounted(() => {
           >
             <span
               v-if="day > 0"
-              class="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-semibold"
+              class="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-medium transition"
               :class="[
                 day === currentDayNum
-                  ? 'bg-brand-orange text-black font-extrabold shadow-sm'
-                  : 'text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer'
+                  ? 'bg-blue-600 text-white font-bold shadow-xs'
+                  : 'text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer'
               ]"
             >
               {{ day }}
@@ -172,74 +162,72 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Right Section: System Tools -->
-    <div class="flex items-center gap-3.5 relative">
-      <!-- Faint CPU usage indicator -->
-      <span class="hidden md:inline-block font-mono text-[10px] text-brand-orange-light/50 select-text">CPU {{ cpuUsage }}%</span>
+    <!-- Right Section: System Tools & Control Center -->
+    <div class="flex items-center gap-3 relative">
+      <span class="hidden md:inline-block font-mono text-[10px] text-zinc-500">CPU {{ cpuUsage }}%</span>
 
       <!-- Action items -->
       <button
-        class="flex items-center gap-2.5 hover:text-brand-orange transition cursor-pointer"
+        class="flex items-center gap-2 p-1 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition cursor-pointer"
+        :class="showControlCenter ? 'text-zinc-100 bg-white/10' : ''"
         @click="toggleControlCenter"
       >
-        <Bell class="w-4 h-4 stroke-[1.8]" />
-        <Wifi class="w-4 h-4 stroke-[1.8]" />
-        <Volume2 class="w-4 h-4 stroke-[1.8]" />
-        <Sun class="w-4 h-4 stroke-[1.8]" />
-        <Settings class="w-4 h-4 stroke-[1.8]" />
+        <Wifi class="w-3.5 h-3.5" />
+        <Volume2 class="w-3.5 h-3.5" />
+        <Settings class="w-3.5 h-3.5" />
       </button>
 
       <!-- Control Center Dropdown -->
       <div
         v-if="showControlCenter"
-        class="absolute right-0 top-9 w-[240px] bg-bg-panel/95 border border-brand-orange/20 shadow-2xl backdrop-blur-xl rounded-xl p-4 flex flex-col gap-4 z-[100000] text-gray-300"
+        class="absolute right-0 top-8 w-[250px] bg-zinc-900/90 border border-white/10 shadow-2xl backdrop-blur-2xl rounded-xl p-3.5 flex flex-col gap-3.5 z-[100000] text-zinc-200"
       >
-        <div class="flex justify-between items-center border-b border-white/5 pb-2">
-          <span class="font-bold text-gray-200 text-xs">Centro de Controle</span>
-          <button class="text-brand-orange hover:text-brand-orange-light" @click="handleShutdown">
-            <Power class="w-4 h-4" />
+        <div class="flex justify-between items-center border-b border-white/[0.08] pb-2">
+          <span class="font-semibold text-zinc-200 text-xs">Ajustes Rápidos</span>
+          <button class="text-zinc-400 hover:text-red-400 transition cursor-pointer" @click="handleShutdown" title="Desligar">
+            <Power class="w-3.5 h-3.5" />
           </button>
         </div>
 
         <!-- Connection Settings -->
         <div class="grid grid-cols-2 gap-2 text-center text-[10px]">
           <div
-            class="p-2 bg-white/5 border border-white/5 hover:border-brand-orange/30 rounded-lg cursor-pointer flex flex-col items-center gap-1"
+            class="p-2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] rounded-lg cursor-pointer flex flex-col items-center gap-1 transition"
             @click="isWifiConnected = !isWifiConnected"
           >
-            <Wifi class="w-4.5 h-4.5" :class="isWifiConnected ? 'text-brand-orange' : 'text-gray-500'" />
-            <span class="font-semibold text-gray-300">Conexão Wi-Fi</span>
-            <span class="text-[8px] text-gray-500">{{ isWifiConnected ? 'Conectado' : 'Desativado' }}</span>
+            <Wifi class="w-4 h-4" :class="isWifiConnected ? 'text-blue-400' : 'text-zinc-500'" />
+            <span class="font-medium text-zinc-200">Wi-Fi</span>
+            <span class="text-[9px] text-zinc-500">{{ isWifiConnected ? 'Conectado' : 'Off' }}</span>
           </div>
 
-          <div class="p-2 bg-white/5 border border-white/5 hover:border-brand-orange/30 rounded-lg cursor-pointer flex flex-col items-center gap-1">
-            <Volume2 class="w-4.5 h-4.5 text-brand-orange" />
-            <span class="font-semibold text-gray-300">Bluetooth</span>
-            <span class="text-[8px] text-brand-orange">Ativado</span>
-          </div>
-        </div>
-
-        <!-- Ranges / Volume and Brightness -->
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-col gap-1">
-            <div class="flex justify-between text-[9px] text-gray-400">
-              <span>Volume</span>
-              <span class="font-mono text-brand-orange">{{ systemVolume }}%</span>
-            </div>
-            <input type="range" v-model="systemVolume" min="0" max="100" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-orange" />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <div class="flex justify-between text-[9px] text-gray-400">
-              <span>Brilho</span>
-              <span class="font-mono text-brand-orange">{{ systemBrightness }}%</span>
-            </div>
-            <input type="range" v-model="systemBrightness" min="10" max="100" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-orange" />
+          <div class="p-2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] rounded-lg cursor-pointer flex flex-col items-center gap-1 transition">
+            <Volume2 class="w-4 h-4 text-emerald-400" />
+            <span class="font-medium text-zinc-200">Áudio</span>
+            <span class="text-[9px] text-emerald-400">Ativo</span>
           </div>
         </div>
 
-        <div class="text-[9px] text-center text-gray-500 border-t border-white/5 pt-2">
-          BernOS v1.0.0 · Theme Orange
+        <!-- Volume and Brightness Sliders -->
+        <div class="flex flex-col gap-2.5">
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px] text-zinc-400">
+              <span class="flex items-center gap-1"><Volume2 class="w-3 h-3" /> Volume</span>
+              <span class="font-mono text-zinc-300">{{ systemVolume }}%</span>
+            </div>
+            <input type="range" v-model="systemVolume" min="0" max="100" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[10px] text-zinc-400">
+              <span class="flex items-center gap-1"><Sun class="w-3 h-3" /> Brilho</span>
+              <span class="font-mono text-zinc-300">{{ systemBrightness }}%</span>
+            </div>
+            <input type="range" v-model="systemBrightness" min="10" max="100" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+        </div>
+
+        <div class="text-[9px] text-center text-zinc-500 border-t border-white/[0.08] pt-2 font-mono">
+          BernOS v1.1.0 · macOS Clean Theme
         </div>
       </div>
     </div>

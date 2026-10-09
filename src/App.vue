@@ -86,13 +86,13 @@ const getAppIcon = (id: string) => {
 
 const getAppIconColor = (id: string) => {
   switch (id) {
-    case 'terminal': return 'text-emerald-400'
+    case 'terminal': return 'text-zinc-300'
     case 'vscode': return 'text-blue-400'
-    case 'files': return 'text-amber-400'
-    case 'mail': return 'text-sky-300'
-    case 'spotify': return 'text-green-400'
-    case 'localstack': return 'text-purple-400'
-    default: return 'text-brand-orange'
+    case 'files': return 'text-sky-400'
+    case 'mail': return 'text-indigo-400'
+    case 'spotify': return 'text-emerald-400'
+    case 'localstack': return 'text-amber-400'
+    default: return 'text-zinc-300'
   }
 }
 </script>
@@ -130,34 +130,34 @@ const getAppIconColor = (id: string) => {
       <!-- macOS Style bottom Dock -->
       <Dock />
 
-      <!-- Onboarding Tutorial Modal -->
+      <!-- Onboarding Tutorial Modal (macOS Clean Dialog Style) -->
       <Transition name="tutorial-fade">
         <div v-if="showTutorial" class="fixed inset-0 z-[100000] flex items-center justify-center bg-black/75 backdrop-blur-sm">
-          <div class="w-[380px] bg-[#0a0a0c]/90 border border-brand-orange/30 p-6 rounded-2xl shadow-2xl flex flex-col gap-4 text-gray-200">
+          <div class="w-[380px] bg-zinc-900/95 border border-white/10 p-6 rounded-2xl shadow-2xl backdrop-blur-2xl flex flex-col gap-4 text-zinc-200">
             
             <!-- Screen 1: Choice question -->
             <template v-if="!showInstructions">
               <div class="text-center">
-                <h3 class="text-sm font-bold text-white tracking-wide">É a sua primeira vez no BernOS?</h3>
-                <p class="text-[9px] text-brand-orange-light font-semibold uppercase mt-0.5 tracking-wider">Boas-vindas</p>
+                <h3 class="text-sm font-semibold text-white tracking-wide">Bem-vindo ao BernOS</h3>
+                <p class="text-[10px] text-zinc-400 font-medium uppercase mt-0.5 tracking-wider">Primeira Inicialização</p>
               </div>
               
-              <p class="text-xs leading-relaxed text-gray-300 text-center mt-1">
-                Gostaria de ver um breve tutorial de 1 minuto ensinando a navegar pelos aplicativos, janelas e atalhos do portfólio?
+              <p class="text-xs leading-relaxed text-zinc-300 text-center mt-1">
+                Gostaria de ver um breve guia rápido de navegação pelos aplicativos, janelas e atalhos do portfólio?
               </p>
 
-              <div class="flex gap-3 justify-center mt-3">
+              <div class="flex gap-2.5 justify-center mt-3">
                 <button
-                  class="px-4 py-2 border border-white/10 hover:bg-white/5 text-gray-300 rounded-lg cursor-pointer transition text-xs font-semibold"
+                  class="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 rounded-lg cursor-pointer transition text-xs font-medium"
                   @click="completeTutorial"
                 >
-                  Não, pular
+                  Pular
                 </button>
                 <button
-                  class="px-4 py-2 bg-brand-orange hover:bg-brand-orange-light text-black font-extrabold rounded-lg shadow-md cursor-pointer transition text-xs"
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg shadow-sm cursor-pointer transition text-xs"
                   @click="showInstructions = true"
                 >
-                  Sim, ver tutorial
+                  Ver guia
                 </button>
               </div>
             </template>
@@ -165,27 +165,27 @@ const getAppIconColor = (id: string) => {
             <!-- Screen 2: Step-by-step instructions -->
             <template v-else>
               <div class="text-center">
-                <h3 class="text-sm font-bold text-white tracking-wide">Como navegar no BernOS</h3>
-                <p class="text-[9px] text-brand-orange-light font-semibold uppercase mt-0.5 tracking-wider">Manual de Inicialização</p>
+                <h3 class="text-sm font-semibold text-white tracking-wide">Como navegar no BernOS</h3>
+                <p class="text-[10px] text-zinc-400 font-medium uppercase mt-0.5 tracking-wider">Atalhos do Sistema</p>
               </div>
 
-              <div class="text-xs leading-relaxed flex flex-col gap-2.5 text-gray-300 mt-1 select-text">
-                <p class="select-text">Este portfólio simula um sistema operacional completo. Como navegar:</p>
+              <div class="text-xs leading-relaxed flex flex-col gap-2.5 text-zinc-300 mt-1 select-text">
+                <p class="select-text text-zinc-400">Este portfólio simula um sistema operacional completo:</p>
                 <ul class="flex flex-col gap-2 select-text">
                   <li class="flex gap-2 select-text">
-                    <span class="text-brand-orange font-bold select-text">1.</span>
-                    <span class="select-text"><strong>Dock (Abaixo)</strong>: Clique nos ícones coloridos para abrir aplicativos (Terminal, VSCode, Files, Contato, Music Player).</span>
+                    <span class="text-sky-400 font-bold select-text">1.</span>
+                    <span class="select-text"><strong>Dock</strong>: Clique nos ícones abaixo para abrir os aplicativos (Terminal, VSCode, Arquivos, Contato, Spotify).</span>
                   </li>
                   <li class="flex gap-2 select-text">
-                    <span class="text-brand-orange font-bold select-text">2.</span>
-                    <span class="select-text"><strong>Janelas</strong>: Arraste pelo cabeçalho. Redimensione puxando qualquer <strong>borda ou canto</strong>.</span>
+                    <span class="text-sky-400 font-bold select-text">2.</span>
+                    <span class="select-text"><strong>Janelas</strong>: Arraste pela barra de título. Redimensione puxando as bordas.</span>
                   </li>
                   <li class="flex gap-2 select-text">
-                    <span class="text-brand-orange font-bold select-text">3.</span>
-                    <span class="select-text"><strong>Contato</strong>: Clique no envelope no Dock para ver redes sociais (LinkedIn, GitHub e E-mail).</span>
+                    <span class="text-sky-400 font-bold select-text">3.</span>
+                    <span class="select-text"><strong>Contato</strong>: Clique no aplicativo de envelope para redes sociais (LinkedIn, GitHub e E-mail).</span>
                   </li>
                   <li class="flex gap-2 select-text">
-                    <span class="text-brand-orange font-bold select-text">4.</span>
+                    <span class="text-sky-400 font-bold select-text">4.</span>
                     <span class="select-text"><strong>Calendário</strong>: Clique no relógio no centro da barra superior.</span>
                   </li>
                 </ul>
@@ -193,7 +193,7 @@ const getAppIconColor = (id: string) => {
 
               <div class="flex justify-center mt-3">
                 <button
-                  class="px-5 py-2.5 bg-brand-orange hover:bg-brand-orange-light text-black font-extrabold rounded-lg shadow-md cursor-pointer transition active:scale-95 text-xs tracking-wide"
+                  class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg shadow-sm cursor-pointer transition active:scale-95 text-xs"
                   @click="completeTutorial"
                 >
                   Entendi, iniciar!
