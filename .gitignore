@@ -30,5 +30,6 @@ dist-ssr
 *.pem
 .env
 .env.*
+!.env.example
 .env.local
 
