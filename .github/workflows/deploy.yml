@@ -77,46 +77,45 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy na EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          mkdir -p ~/.ssh
+          # Remove qualquer espaco/indentacao acidental do inicio das linhas da chave
+          echo "$EC2_SSH_KEY" | sed 's/^[ \t]*//' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" bash << 'EOF'
             set -e
-            echo "[Deploy] Iniciando atualização do BernOS..."
+            echo "[Deploy] Iniciando atualizacao do BernOS..."
 
-            # Autenticar Docker com o ECR na instância
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 008971641425.dkr.ecr.us-east-1.amazonaws.com
 
-            # Puxar a nova imagem gerada
-            docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            docker pull 008971641425.dkr.ecr.us-east-1.amazonaws.com/platform/bernos:latest
 
-            # Garantir diretório com permissão para o volume persistente do SQLite
-            mkdir -p /home/${{ secrets.EC2_USER }}/bernos-data
-            chmod 777 /home/${{ secrets.EC2_USER }}/bernos-data
+            mkdir -p /home/ubuntu/bernos-data
+            chmod 777 /home/ubuntu/bernos-data
 
-            # Parar e remover container antigo
-            docker stop ${{ env.CONTAINER_NAME }} || true
-            docker rm ${{ env.CONTAINER_NAME }} || true
+            docker stop bernos-app || true
+            docker rm bernos-app || true
 
-            # Subir novo container com otimizações para t3a.nano:
-            # - Bind apenas em 127.0.0.1 (seguro com Cloudflare Tunnel)
-            # - Volume persistente para SQLite
-            # - Limite de memória (120M) e rotação de logs para proteger o disco
             docker run -d \
-              --name ${{ env.CONTAINER_NAME }} \
+              --name bernos-app \
               --restart unless-stopped \
               -p 127.0.0.1:3000:3000 \
               -e PORT=3000 \
               -e DATABASE_PATH=/app/data/bernos.db \
-              -v /home/${{ secrets.EC2_USER }}/bernos-data:/app/data \
+              -v /home/ubuntu/bernos-data:/app/data \
               --log-opt max-size=5m \
               --log-opt max-file=2 \
               --memory=120m \
-              ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+              008971641425.dkr.ecr.us-east-1.amazonaws.com/platform/bernos:latest
 
-            # LIMPEZA OBRIGATÓRIA (CRÍTICA NA T3A.NANO): Remove imagens antigas para poupar os 2GB livres
             docker image prune -af
 
             echo "[Deploy] BernOS atualizado com sucesso!"
+          EOF
+
