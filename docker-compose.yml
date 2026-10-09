@@ -7,7 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: bernos-app
     ports:
-      - "3000:3000"
+      # Bind only to localhost (safe for Cloudflare Tunnel, prevents direct exposure)
+      - "127.0.0.1:3000:3000"
     environment:
       - PORT=3000
       - GITHUB_USER=BernardoVillanova
@@ -15,6 +16,13 @@ services:
     volumes:
       - bernos-data:/app/data
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    # Strict memory limit to ensure t3a.nano stability
+    mem_limit: 120m
 
 volumes:
   bernos-data:

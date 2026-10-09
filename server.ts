@@ -1,8 +1,13 @@
 import { Database } from "bun:sqlite";
-import { join } from "path";
+import { join, dirname } from "path";
+import { mkdirSync } from "fs";
 
 const dbPath = process.env.DATABASE_PATH || join(__dirname, "bernos.db");
+try {
+  mkdirSync(dirname(dbPath), { recursive: true });
+} catch {}
 const db = new Database(dbPath, { create: true });
+
 
 // Initialize database tables
 db.run(`
@@ -443,18 +448,25 @@ const server = Bun.serve({
       return new Response(null, { headers });
     }
 
-    // Serve static files in production if path doesn't start with /api
-    if (!path.startsWith("/api")) {
+    // Serve static files in production if path doesn't start with /api and not /health
+    if (!path.startsWith("/api") && path !== "/health") {
       try {
         const filePath = join(__dirname, "dist", path === "/" ? "index.html" : path.slice(1));
         const file = Bun.file(filePath);
         if (await file.exists()) {
-          return new Response(file);
+          const cacheControl = path.startsWith("/assets/")
+            ? "public, max-age=31536000, immutable"
+            : "no-cache";
+          return new Response(file, {
+            headers: { "Cache-Control": cacheControl }
+          });
         }
         // Fallback to index.html for SPA client-side routing
         const indexFile = Bun.file(join(__dirname, "dist", "index.html"));
         if (await indexFile.exists()) {
-          return new Response(indexFile);
+          return new Response(indexFile, {
+            headers: { "Cache-Control": "no-cache" }
+          });
         }
       } catch (e) {
         console.error("[Static Server Error]", e);
@@ -462,6 +474,15 @@ const server = Bun.serve({
     }
 
     try {
+      // Health check endpoint for Docker & Cloudflare Tunnel
+      if ((path === "/health" || path === "/api/health") && method === "GET") {
+        return new Response(JSON.stringify({
+          status: "healthy",
+          uptime: Math.floor(process.uptime()),
+          timestamp: new Date().toISOString()
+        }), { headers });
+      }
+
       // GET /api/github/repos
       if (path === "/api/github/repos" && method === "GET") {
         const repos = await getRepos();
@@ -521,3 +542,18 @@ const server = Bun.serve({
 });
 
 console.log(`[API Server] Running on http://localhost:${server.port}`);
+
+const handleGracefulShutdown = (signal: string) => {
+  console.log(`[Server] Received ${signal}. Closing database and server gracefully...`);
+  try {
+    db.close();
+  } catch (e) {
+    console.error("[Server] Error closing database:", e);
+  }
+  server.stop();
+  process.exit(0);
+};
+
+process.on("SIGTERM", () => handleGracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => handleGracefulShutdown("SIGINT"));
+

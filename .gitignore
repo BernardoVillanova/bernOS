@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 *.db
+
+# Secrets & Keys
+*.key
+*.key.pub
+*.pem
+.env
+.env.*
+.env.local
+

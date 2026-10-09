@@ -1,0 +1,36 @@
+# Dependencies & build outputs
+node_modules
+dist
+dist-ssr
+.cache
+
+# Version control & configuration
+.git
+.github
+.vscode
+.claude
+.idea
+
+# Secrets, private keys & env files
+*.key
+*.key.pub
+*.pem
+.env
+.env.*
+.env.local
+
+# Documentation & media not needed in production container
+README.md
+*.png
+*.gif
+*.jpg
+*.jpeg
+
+# Infrastructure & test scripts
+terraform
+scripts
+
+# Local SQLite databases (database will be initialized or mounted via volume)
+*.db
+*.db-journal
+*.db-wal
