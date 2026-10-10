@@ -1,8 +1,62 @@
 <script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWindowStore } from '../stores/windowStore'
-import { Terminal, Code, Folder, Mail, Music, Cloud } from 'lucide-vue-next'
+
+import finderIcon from '../assets/app-icons/finder.svg'
+import safariIcon from '../assets/app-icons/safari.svg'
+import photosIcon from '../assets/app-icons/photos.svg'
+import mailIcon from '../assets/app-icons/mail.svg'
+import terminalIcon from '../assets/app-icons/terminal.svg'
+import vscodeIcon from '../assets/app-icons/vscode.svg'
+import spotifyIcon from '../assets/app-icons/spotify.svg'
+import localstackIcon from '../assets/app-icons/localstack.svg'
+import settingsIcon from '../assets/app-icons/settings.svg'
+import trashIcon from '../assets/app-icons/trash.svg'
 
 const store = useWindowStore()
+
+const isHovered = ref(false)
+let hideTimeout: ReturnType<typeof setTimeout> | null = null
+
+const hasOpenWindows = computed(() => {
+  return store.windows.some(w => w.isOpen && !w.isMinimized)
+})
+
+const isDockHidden = computed(() => {
+  return hasOpenWindows.value && !isHovered.value
+})
+
+const onMouseEnter = () => {
+  if (hideTimeout) clearTimeout(hideTimeout)
+  isHovered.value = true
+}
+
+const onMouseLeave = () => {
+  if (hideTimeout) clearTimeout(hideTimeout)
+  hideTimeout = setTimeout(() => {
+    isHovered.value = false
+  }, 350)
+}
+
+const handleGlobalMouseMove = (e: MouseEvent) => {
+  if (typeof window === 'undefined') return
+  // If mouse touches bottom edge (last 12px), reveal dock
+  if (e.clientY >= window.innerHeight - 12) {
+    onMouseEnter()
+  } else if (e.clientY < window.innerHeight - 85 && isHovered.value) {
+    // If mouse moves well above the dock, initiate hide
+    onMouseLeave()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousemove', handleGlobalMouseMove)
+})
+
+onUnmounted(() => {
+  if (hideTimeout) clearTimeout(hideTimeout)
+  window.removeEventListener('mousemove', handleGlobalMouseMove)
+})
 
 const isWindowOpen = (id: string) => {
   const win = store.windows.find(w => w.id === id)
@@ -14,6 +68,10 @@ const isWindowActive = (id: string) => {
 }
 
 const handleDockClick = (id: string) => {
+  if (id === 'gallery') {
+    store.openPhotosInFinder()
+    return
+  }
   const win = store.windows.find(w => w.id === id)
   if (win) {
     if (win.isOpen) {
@@ -30,99 +88,110 @@ const handleDockClick = (id: string) => {
   }
 }
 
-// macOS style app icon design mappings (Rich, solid, authentic OS feel)
-const dockItems = [
-  { 
-    id: 'terminal', 
-    name: 'Terminal', 
-    icon: Terminal, 
-    bg: 'bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border-white/15 text-zinc-100 shadow-zinc-950/40' 
-  },
-  { 
-    id: 'vscode', 
-    name: 'VS Code', 
-    icon: Code, 
-    bg: 'bg-gradient-to-b from-sky-500 to-blue-700 border-sky-300/30 text-white shadow-blue-900/30' 
-  },
-  { 
-    id: 'files', 
-    name: 'Arquivos', 
-    icon: Folder, 
-    bg: 'bg-gradient-to-b from-sky-400 to-blue-600 border-sky-300/30 text-white shadow-sky-900/30' 
-  },
-  { 
-    id: 'mail', 
-    name: 'Contato', 
-    icon: Mail, 
-    bg: 'bg-gradient-to-b from-blue-500 to-indigo-600 border-indigo-300/30 text-white shadow-indigo-900/30' 
-  },
-  { 
-    id: 'spotify', 
-    name: 'Spotify', 
-    icon: Music, 
-    bg: 'bg-gradient-to-b from-emerald-500 to-teal-700 border-emerald-300/30 text-white shadow-emerald-950/30' 
-  },
-  { 
-    id: 'localstack', 
-    name: 'LocalStack', 
-    icon: Cloud, 
-    bg: 'bg-gradient-to-b from-amber-500 to-orange-600 border-amber-300/30 text-white shadow-orange-950/30' 
-  }
+// macOS Authentic Dock order: Finder is ALWAYS #1 on the left!
+const mainDockItems = [
+  { id: 'files', name: 'Finder', iconSrc: finderIcon },
+  { id: 'portfolio', name: 'Navegador', iconSrc: safariIcon },
+  { id: 'gallery', name: 'Fotos (Finder)', iconSrc: photosIcon },
+  { id: 'mail', name: 'Contato', iconSrc: mailIcon },
+  { id: 'terminal', name: 'Terminal', iconSrc: terminalIcon },
+  { id: 'vscode', name: 'VS Code', iconSrc: vscodeIcon },
+  { id: 'spotify', name: 'Spotify', iconSrc: spotifyIcon },
+  { id: 'localstack', name: 'LocalStack', iconSrc: localstackIcon },
+  { id: 'settings', name: 'Configurações', iconSrc: settingsIcon }
+]
+
+const rightDockItems = [
+  { id: 'trash', name: 'Lixeira', iconSrc: trashIcon }
 ]
 </script>
 
 <template>
-  <div class="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-[9999] flex items-center select-none pointer-events-auto">
+  <!-- Invisible bottom hover trigger zone across the screen -->
+  <div
+    class="fixed bottom-0 inset-x-0 h-4 z-[9998] pointer-events-auto"
+    @mouseenter="onMouseEnter"
+  ></div>
+
+  <!-- macOS Dock Container with Auto-Hide Translation -->
+  <div
+    class="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-[9999] flex items-center select-none pointer-events-auto transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+    :class="isDockHidden ? 'translate-y-[140%] pointer-events-none' : 'translate-y-0 pointer-events-auto'"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+  >
     <!-- macOS Authentic Glassmorphism Dock -->
-    <div class="h-[62px] px-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 shadow-2xl backdrop-blur-2xl flex items-center">
-      
-      <!-- Application Launcher Icons -->
-      <div class="flex items-end gap-3 h-full pb-1">
+    <div
+      class="h-[64px] px-3 rounded-2xl border shadow-2xl backdrop-blur-2xl flex items-center gap-1.5 transition-colors duration-300"
+      :class="store.theme === 'light'
+        ? 'bg-white/60 border-white/70 shadow-[0_15px_35px_rgba(0,0,0,0.18)]'
+        : 'bg-zinc-900/65 border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)]'"
+    >
+      <!-- Main Application Launcher Icons (Finder on Left) -->
+      <div class="flex items-end gap-2 h-full pb-1">
         <div
-          v-for="item in dockItems"
+          v-for="item in mainDockItems"
           :key="item.id"
-          class="relative group flex flex-col items-center cursor-pointer transition-all duration-200"
+          class="relative flex flex-col items-center group cursor-pointer"
           @click="handleDockClick(item.id)"
         >
-          <!-- macOS Native Style Tooltip -->
-          <div class="absolute -top-10 px-2.5 py-1 bg-zinc-900/95 text-[11px] font-medium text-zinc-100 rounded-lg border border-white/10 shadow-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none whitespace-nowrap">
+          <!-- Tooltip with App Name -->
+          <div class="absolute -top-10 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-md shadow-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
             {{ item.name }}
           </div>
 
-          <!-- Squircle App Icon (Rich Apple macOS Aesthetic) -->
-          <div
-            class="w-10 h-10 rounded-xl flex items-center justify-center border shadow-lg transition-all duration-200 hover:scale-120 hover:-translate-y-2 active:scale-95"
-            :class="[
-              item.bg,
-              isWindowActive(item.id) ? 'ring-2 ring-white/30' : ''
-            ]"
-          >
-            <component :is="item.icon" class="w-5 h-5 stroke-[2] drop-shadow-sm" />
+          <!-- Official App SVG Icon with macOS magnification effect -->
+          <div class="w-12 h-12 flex items-center justify-center transition-transform duration-150 ease-out group-hover:scale-120 group-hover:-translate-y-2 active:scale-95">
+            <img :src="item.iconSrc" :alt="item.name" class="w-full h-full object-contain drop-shadow-md rounded-2xl" />
           </div>
 
-          <!-- macOS Authentic Active Indicator Dot -->
-          <div class="absolute -bottom-1 flex justify-center w-full">
-            <template v-if="item.id === 'localstack'">
-              <div
-                v-if="store.localstackStatus === 'running'"
-                class="w-1 h-1 rounded-full bg-emerald-400 shadow-xs"
-              ></div>
-              <div
-                v-else-if="store.localstackStatus === 'stopped'"
-                class="w-1 h-1 rounded-full bg-red-400 shadow-xs"
-              ></div>
-            </template>
-            <template v-else>
-              <div
-                v-if="isWindowOpen(item.id)"
-                class="h-1 rounded-full transition-all duration-200"
-                :class="isWindowActive(item.id) ? 'w-2 bg-white' : 'w-1 bg-white/50'"
-              ></div>
-            </template>
-          </div>
+          <!-- Active App Indicator Dot -->
+          <div
+            class="w-1 h-1 rounded-full transition-all duration-300 mt-1"
+            :class="isWindowActive(item.id)
+              ? 'bg-sky-400 w-2 scale-110 shadow-xs shadow-sky-400'
+              : (isWindowOpen(item.id)
+                ? (store.theme === 'light' ? 'bg-zinc-800/70' : 'bg-white/70')
+                : 'opacity-0')"
+          ></div>
         </div>
       </div>
 
+      <!-- macOS Authentic Dock Divider -->
+      <div
+        class="w-[1px] h-8 mx-0.5 rounded-full shrink-0"
+        :class="store.theme === 'light' ? 'bg-black/15' : 'bg-white/15'"
+      ></div>
+
+      <!-- Right Section (Trash on far right) -->
+      <div class="flex items-end gap-2 h-full pb-1">
+        <div
+          v-for="item in rightDockItems"
+          :key="item.id"
+          class="relative flex flex-col items-center group cursor-pointer"
+          @click="handleDockClick(item.id)"
+        >
+          <!-- Tooltip -->
+          <div class="absolute -top-10 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-md shadow-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+            {{ item.name }}
+          </div>
+
+          <!-- Icon -->
+          <div class="w-12 h-12 flex items-center justify-center transition-transform duration-150 ease-out group-hover:scale-120 group-hover:-translate-y-2 active:scale-95">
+            <img :src="item.iconSrc" :alt="item.name" class="w-full h-full object-contain drop-shadow-md rounded-2xl" />
+          </div>
+
+          <!-- Dot -->
+          <div
+            class="w-1 h-1 rounded-full transition-all duration-300 mt-1"
+            :class="isWindowActive(item.id)
+              ? 'bg-sky-400 w-2 scale-110 shadow-xs shadow-sky-400'
+              : (isWindowOpen(item.id)
+                ? (store.theme === 'light' ? 'bg-zinc-800/70' : 'bg-white/70')
+                : 'opacity-0')"
+          ></div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

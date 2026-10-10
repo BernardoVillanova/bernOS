@@ -14,15 +14,40 @@ import FilesApp from './components/apps/FilesApp.vue'
 import MailApp from './components/apps/MailApp.vue'
 import SpotifyApp from './components/apps/SpotifyApp.vue'
 import LocalStackApp from './components/apps/LocalStackApp.vue'
+import PortfolioApp from './components/apps/PortfolioApp.vue'
+import TrashApp from './components/apps/TrashApp.vue'
+import GalleryApp from './components/apps/GalleryApp.vue'
+import SettingsApp from './components/apps/SettingsApp.vue'
+import PowerOverlay from './components/PowerOverlay.vue'
 
 // Import icons for desktop icons
-import { Terminal, Code, Folder, Mail, Music, Cloud } from 'lucide-vue-next'
+import { Terminal, Code, Folder, Mail, Music, Cloud, Globe, Trash2, Image, Settings } from 'lucide-vue-next'
 
 const store = useWindowStore()
 
 const showTutorial = ref(false)
 const showInstructions = ref(false)
 const isMobile = ref(false)
+const selectedDesktopIcon = ref<string | null>(null)
+
+import safariIcon from './assets/app-icons/safari.svg'
+import terminalIcon from './assets/app-icons/terminal.svg'
+import vscodeIcon from './assets/app-icons/vscode.svg'
+import finderIcon from './assets/app-icons/finder.svg'
+import photosIcon from './assets/app-icons/photos.svg'
+import settingsIcon from './assets/app-icons/settings.svg'
+import trashIcon from './assets/app-icons/trash.svg'
+
+// macOS Authentic Desktop order: Finder is #1
+const desktopShortcuts = [
+  { id: 'files', title: 'Finder', iconSrc: finderIcon },
+  { id: 'portfolio', title: 'Navegador', iconSrc: safariIcon },
+  { id: 'gallery', title: 'Fotos', iconSrc: photosIcon },
+  { id: 'terminal', title: 'Terminal', iconSrc: terminalIcon },
+  { id: 'vscode', title: 'VS Code', iconSrc: vscodeIcon },
+  { id: 'settings', title: 'Configurações', iconSrc: settingsIcon },
+  { id: 'trash', title: 'Lixeira', iconSrc: trashIcon }
+]
 
 const completeTutorial = () => {
   showTutorial.value = false
@@ -46,6 +71,9 @@ const updateLayoutMode = () => {
 
 onMounted(() => {
   updateLayoutMode()
+  if (!isMobile.value) {
+    store.layoutInitialWindows()
+  }
   window.addEventListener('resize', updateLayoutMode)
 
   const tutorialComplete = localStorage.getItem('bernos_tutorial_complete')
@@ -64,9 +92,13 @@ const getAppComponent = (id: string) => {
     case 'terminal': return TerminalApp
     case 'vscode': return VSCodeApp
     case 'files': return FilesApp
+    case 'gallery': return GalleryApp
+    case 'settings': return SettingsApp
     case 'mail': return MailApp
     case 'spotify': return SpotifyApp
     case 'localstack': return LocalStackApp
+    case 'portfolio': return PortfolioApp
+    case 'trash': return TrashApp
     default: return null
   }
 }
@@ -77,9 +109,13 @@ const getAppIcon = (id: string) => {
     case 'terminal': return Terminal
     case 'vscode': return Code
     case 'files': return Folder
+    case 'gallery': return Image
+    case 'settings': return Settings
     case 'mail': return Mail
     case 'spotify': return Music
     case 'localstack': return Cloud
+    case 'portfolio': return Globe
+    case 'trash': return Trash2
     default: return Folder
   }
 }
@@ -89,9 +125,13 @@ const getAppIconColor = (id: string) => {
     case 'terminal': return 'text-zinc-300'
     case 'vscode': return 'text-blue-400'
     case 'files': return 'text-sky-400'
+    case 'gallery': return 'text-amber-400'
+    case 'settings': return 'text-zinc-400'
     case 'mail': return 'text-indigo-400'
     case 'spotify': return 'text-emerald-400'
     case 'localstack': return 'text-amber-400'
+    case 'portfolio': return 'text-sky-400'
+    case 'trash': return 'text-zinc-400'
     default: return 'text-zinc-300'
   }
 }
@@ -99,6 +139,9 @@ const getAppIconColor = (id: string) => {
 
 <template>
   <div class="w-screen h-screen overflow-hidden flex flex-col relative select-none font-sans bg-transparent">
+    <!-- Power overlay (Shutdown, Restart, Off screen) -->
+    <PowerOverlay />
+
     <!-- Wallpaper background -->
     <DesktopBackground />
 
@@ -110,8 +153,26 @@ const getAppIconColor = (id: string) => {
       <TopBar />
 
       <!-- Desktop Area (Windows container) -->
-      <div class="flex-grow relative overflow-hidden p-6">
+      <div class="flex-grow relative overflow-hidden p-6" @click="selectedDesktopIcon = null">
         
+        <!-- Desktop Shortcuts Column (Authentic macOS Desktop Icons) -->
+        <div class="absolute top-4 left-6 z-0 flex flex-col gap-3 select-none pointer-events-auto">
+          <div
+            v-for="app in desktopShortcuts"
+            :key="app.id"
+            @click.stop="app.id === 'gallery' ? store.openPhotosInFinder() : store.openWindow(app.id)"
+            class="flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer w-20 transition group"
+            :class="selectedDesktopIcon === app.id ? 'bg-white/10 ring-1 ring-white/20' : 'hover:bg-white/5'"
+          >
+            <div class="w-13 h-13 flex items-center justify-center transition-transform duration-150 group-hover:scale-105 active:scale-95 drop-shadow-lg">
+              <img :src="app.iconSrc" :alt="app.title" class="w-full h-full object-contain rounded-2xl" />
+            </div>
+            <span class="text-[11px] font-medium text-white/90 text-center tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] leading-tight">
+              {{ app.title }}
+            </span>
+          </div>
+        </div>
+
         <!-- App Windows Layer -->
         <OsWindow
           v-for="win in store.windows"

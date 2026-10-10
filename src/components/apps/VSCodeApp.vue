@@ -239,21 +239,28 @@ const yebPlenoCrescimento: YebPlenoJourney = {
     name: '2026.ts',
     path: 'career/2026.ts',
     language: 'typescript',
-    content: `// [2026] Atuação Atual e Engenharia Cloud Otimizada
-// Ano Atual (2026) — Atuação como DevOps Pleno na Yeb Inteligência de Mercado.
-// Foco total em Platform Engineering, otimização de faturamento cloud (FinOps), e DevSecOps.
-// Mentoria técnica para profissionais em início de carreira e governança multi-cloud.
+    content: `// [2026] Analista DevOps na Casa do Construtor & Trajetória na Yeb
+// Outubro de 2026 — Atual: Analista DevOps na Casa do Construtor (Rio Claro, SP).
+// Foco total no protagonismo de infraestrutura em nuvem, orquestração de Kubernetes e automação.
+// Passagem anterior marcante como DevOps Pleno na Yeb Inteligência de Mercado (Platform Engineering e FinOps).
 
-const yebPlenoAtual: PresentState = {
-  company: 'Yeb Inteligência de Mercado',
-  year: 2026,
-  status: 'Ativo (DevOps Pleno - 1 ano e 5 meses no cargo)',
+const casaDoConstrutorAtual: ProfessionalDevOps = {
+  company: 'Casa do Construtor',
+  period: 'Outubro de 2026 - Atual',
+  role: 'Analista DevOps',
+  location: 'Rio Claro, SP, Brasil',
+  stack: ['Kubernetes', 'AWS', 'Docker', 'Terraform', 'Linux', 'CI/CD'],
   currentFocus: [
-    'Platform Engineering: Criação de soluções internas que simplificam de forma drástica os deploys de backend/frontend',
-    'FinOps: Monitoramento de custos AWS e escalabilidade elástica',
-    'Mentoria: Acompanhamento técnico ativo de estagiários e desenvolvedores júniores',
-    'Segurança: Revisão de redes (VPC, NAT Gateways), políticas restritivas IAM e secrets management'
+    'Infraestrutura centralizada e sustentação de clusters Kubernetes em produção',
+    'Automação de ambientes, observabilidade em tempo real e estabilização de workloads',
+    'Governança de esteiras de CI/CD para entrega contínua com máxima confiabilidade'
   ],
+  previousPosition: {
+    company: 'Yeb Inteligência de Mercado',
+    role: 'DevOps Pleno',
+    period: 'Janeiro de 2024 - Outubro de 2026',
+    achievements: 'Platform Engineering, redução de custos na AWS (FinOps) e mentoria técnica de equipe'
+  },
   contact: {
     email: 'bernardo.villasantana@gmail.com',
     location: 'Rio Claro, SP, Brasil'
@@ -536,7 +543,7 @@ Este espaço foi criado para contar a minha história profissional de forma inte
 
 const activeFileKey = ref('career/2026.ts')
 const openTabs = ref<string[]>(['README.md', 'career/2026.ts', 'skills/containers.yml'])
-const explorerOpen = ref(true)
+const explorerOpen = ref(typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
 const careerFolderOpen = ref(true)
 const skillsFolderOpen = ref(true)
 const scrollProgress = ref(0)
@@ -681,14 +688,29 @@ const timelineData = [
     category: 'Experiência',
     icon: Briefcase,
     title: 'Yeb Inteligência de Mercado',
-    subtitle: 'Engenheiro DevOps Pleno (Atualmente)',
-    desc: 'Responsabilidade atual focada em Platform Engineering (simplificação de deploy dos times), redução de faturamento AWS (FinOps) e auditorias de acessos IAM.',
+    subtitle: 'Engenheiro DevOps Pleno (Jan 2024 - Out 2026)',
+    desc: 'Atuação focada em Platform Engineering (simplificação de deploy dos times), redução de faturamento AWS (FinOps), governança de acessos IAM e mentoria.',
     bulletPoints: [
       'Implementação de soluções internas de Platform Engineering',
       'Políticas restritivas de redes VPC/NAT e governança de acessos IAM',
       'Mentoria ativa de estagiários e desenvolvedores back-end'
     ],
     colorClass: 'bg-cyan-500 border-cyan-500/25 text-cyan-400'
+  },
+  {
+    year: 2026,
+    bgTop: 2550,
+    category: 'Posição Atual',
+    icon: Briefcase,
+    title: 'Casa do Construtor',
+    subtitle: 'Analista DevOps (Outubro 2026 - Atual)',
+    desc: 'Atuação na sustentação e evolução de infraestrutura em nuvem, com Kubernetes e automação no centro da rotina técnica, consolidando práticas modernas de DevOps.',
+    bulletPoints: [
+      'Orquestração e governança de clusters Kubernetes em produção',
+      'Infraestrutura cloud resiliente, segura e com observabilidade contínua',
+      'Padronização de esteiras de CI/CD para máxima estabilidade e entrega contínua'
+    ],
+    colorClass: 'bg-amber-500 border-amber-500/25 text-amber-400'
   }
 ]
 
@@ -723,6 +745,9 @@ const selectFile = (key: string) => {
   activeFileKey.value = key
   if (!openTabs.value.includes(key)) {
     openTabs.value.push(key)
+  }
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    explorerOpen.value = false
   }
   playFileOpenSound()
   scrollProgress.value = 0
@@ -958,7 +983,7 @@ const tokenizedLines = computed<CodeLine[]>(() => {
   <div class="flex-grow flex h-full bg-[#181824] text-gray-300 font-mono text-xs select-none relative overflow-hidden">
     
     <!-- Activity Bar -->
-    <div class="w-12 bg-[#1e1e2f] border-r border-[#181824] flex flex-col items-center py-4 gap-5 shrink-0">
+    <div class="w-10 sm:w-12 bg-[#1e1e2f] border-r border-[#181824] flex flex-col items-center py-3 sm:py-4 gap-4 sm:gap-5 shrink-0 z-30">
       <button
         class="text-gray-400 hover:text-white cursor-pointer transition p-1"
         :class="explorerOpen ? 'text-brand-orange hover:text-brand-orange-light' : ''"
@@ -970,11 +995,21 @@ const tokenizedLines = computed<CodeLine[]>(() => {
       <button class="text-gray-500 hover:text-gray-300 cursor-pointer transition p-1" title="Pesquisar (Decorativo)"><Search class="w-5 h-5" /></button>
       <button class="text-gray-500 hover:text-gray-300 cursor-pointer transition p-1" title="Controle de Código (Decorativo)"><GitBranch class="w-5 h-5" /></button>
       <div class="flex-grow"></div>
-      <button class="text-gray-500 hover:text-gray-300 cursor-pointer transition p-1" title="Configurações"><Settings class="w-5 h-5" /></button>
+      <button @click="store.openWindow('settings')" class="text-gray-500 hover:text-gray-300 cursor-pointer transition p-1" title="Configurações do Sistema"><Settings class="w-5 h-5" /></button>
     </div>
 
-    <!-- Sidebar File Explorer -->
-    <div v-if="explorerOpen" class="w-[200px] bg-[#1a1a26]/90 border-r border-white/5 flex flex-col shrink-0">
+    <!-- Mobile Backdrop for Explorer Drawer -->
+    <div
+      v-if="explorerOpen"
+      class="md:hidden absolute inset-0 z-20 bg-black/50 backdrop-blur-xs"
+      @click="explorerOpen = false"
+    ></div>
+
+    <!-- Sidebar File Explorer (Responsive Drawer on mobile, column on desktop) -->
+    <div
+      v-if="explorerOpen"
+      class="absolute md:static inset-y-0 left-10 sm:left-12 z-30 w-60 md:w-[200px] bg-[#1a1a26]/95 md:bg-[#1a1a26]/90 border-r border-white/10 md:border-white/5 flex flex-col shrink-0 shadow-2xl md:shadow-none backdrop-blur-xl md:backdrop-blur-none"
+    >
       <div class="p-3 uppercase text-[10px] font-bold tracking-wider text-gray-500 flex justify-between items-center">
         <span>Explorador</span>
       </div>
@@ -1055,7 +1090,7 @@ const tokenizedLines = computed<CodeLine[]>(() => {
     <!-- Editor Main Panel -->
     <div class="flex-grow flex flex-col bg-[#1e1e2e] min-w-0 select-text">
       <!-- Tabs Bar -->
-      <div class="h-9 bg-[#1a1a26] flex border-b border-black/20 overflow-x-auto select-none shrink-0 justify-between items-center pr-3">
+      <div v-if="!isRunningCode" class="h-9 bg-[#1a1a26] flex border-b border-black/20 overflow-x-auto select-none shrink-0 justify-between items-center pr-3">
         <div class="flex overflow-x-auto h-full">
           <div
             v-for="tab in openTabs"
@@ -1075,14 +1110,15 @@ const tokenizedLines = computed<CodeLine[]>(() => {
           </div>
         </div>
 
-        <!-- Run Play Button -->
+        <!-- Run Play Button (VS Code Action Bar) -->
         <button
           v-if="currentFile && currentFile.language === 'typescript'"
           @click="runCode"
-          class="flex items-center justify-center w-7 h-7 rounded hover:bg-white/10 text-[#98c379] transition select-none cursor-pointer shrink-0"
-          title="Executar código (Rodar Linha do Tempo)"
+          class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/[0.08] text-zinc-300 hover:text-white transition select-none cursor-pointer shrink-0 text-[11px] font-mono mr-1"
+          title="Run Code (F5)"
         >
-          <Play class="w-4 h-4 fill-[#98c379] stroke-none" />
+          <Play class="w-3.5 h-3.5 fill-[#98c379] text-[#98c379]" />
+          <span class="hidden sm:inline text-zinc-400">Run</span>
         </button>
       </div>
 
@@ -1107,14 +1143,14 @@ const tokenizedLines = computed<CodeLine[]>(() => {
       <!-- Parallax Timeline Visualizer View -->
       <div v-else-if="isRunningCode" class="flex-grow bg-[#0f0f16] flex flex-col relative overflow-hidden select-text">
         <!-- Visualizer Top Navigation Bar -->
-        <div class="h-10 border-b border-white/5 bg-[#141420] px-4 flex items-center justify-between shrink-0 select-none z-30">
-          <div class="flex items-center gap-2">
-            <Cpu class="w-4 h-4 text-brand-orange animate-spin-slow" />
-            <span class="text-gray-200 text-xs font-bold tracking-wide font-sans">Bernardo Journey Visualizer v1.0.0</span>
+        <div class="h-10 border-b border-white/5 bg-[#141420] px-3 sm:px-4 flex items-center justify-between shrink-0 select-none z-30">
+          <div class="flex items-center gap-2 min-w-0">
+            <Cpu class="w-4 h-4 text-brand-orange animate-spin-slow shrink-0" />
+            <span class="text-gray-200 text-xs font-bold tracking-wide font-sans truncate">Bernardo Journey Visualizer</span>
           </div>
           <button
             @click="isRunningCode = false"
-            class="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition font-sans text-xs border border-white/10 cursor-pointer"
+            class="flex items-center gap-1.5 px-3 py-1 rounded bg-white/10 hover:bg-white/15 text-white transition font-sans text-xs border border-white/15 cursor-pointer shrink-0 font-medium"
           >
             <X class="w-3.5 h-3.5" />
             <span>Voltar ao Editor</span>
@@ -1141,92 +1177,80 @@ const tokenizedLines = computed<CodeLine[]>(() => {
             <div class="absolute top-[80%] left-[30%] w-96 h-96 bg-[#c678dd]/5 rounded-full blur-[100px] pointer-events-none"></div>
           </div>
 
-          <!-- LAYER 2: Year floating labels (aligned in sync with cards) -->
-          <div
-            class="absolute inset-x-0 pointer-events-none z-10"
-          >
-            <div
-              v-for="node in timelineData"
-              :key="'bg-year-' + node.year"
-              class="absolute left-1/2 -translate-x-1/2 text-[100px] sm:text-[140px] font-black text-white/[0.015] font-mono leading-none select-none"
-              :style="{
-                top: (node.bgTop + 100) + 'px'
-              }"
-            >
-              {{ node.year }}
-            </div>
-          </div>
-
-          <!-- LAYER 3: Interactive Timeline Foreground Cards -->
-          <div class="relative z-20 max-w-2xl mx-auto px-6 py-20" style="height: 2600px;">
+          <!-- LAYER 2: Interactive Timeline Flowing Cards (Fluid, responsive, no fixed heights) -->
+          <div class="relative z-20 max-w-2xl mx-auto px-4 sm:px-6 py-10 flex flex-col gap-8 sm:gap-12">
             
-            <!-- Connection Line down the center -->
-            <div class="absolute left-1/2 -translate-x-1/2 top-20 bottom-20 w-0.5 bg-gradient-to-b from-brand-orange via-teal-500 to-[#c678dd]"></div>
+            <!-- Continuous Connection Line (left on mobile, center on desktop) -->
+            <div class="absolute left-6 sm:left-1/2 -translate-x-1/2 top-10 bottom-10 w-0.5 bg-gradient-to-b from-brand-orange via-teal-500 to-[#c678dd] pointer-events-none"></div>
 
             <div
               v-for="(item, idx) in timelineData"
               :key="idx"
-              class="absolute w-full flex transition-all duration-700"
-              :class="[
-                idx % 2 === 0 ? 'justify-start' : 'justify-end',
-                timelineScrollTop + 450 > item.bgTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              ]"
-              :style="{
-                top: item.bgTop + 'px'
-              }"
+              class="relative w-full flex flex-col sm:flex-row items-start transition-all duration-500"
+              :class="idx % 2 === 0 ? 'sm:justify-start' : 'sm:justify-end'"
             >
-              <!-- Glowing circle center connector -->
+              <!-- Glowing circle connector (left on mobile, center on desktop) -->
               <div
-                class="absolute left-1/2 -translate-x-1/2 top-6 w-5 h-5 rounded-full border-4 border-[#0f0f16] shadow-lg transition-transform duration-300 hover:scale-125 z-30"
+                class="absolute left-6 sm:left-1/2 -translate-x-1/2 top-5 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-4 border-[#0f0f16] shadow-lg transition-transform duration-300 hover:scale-125 z-30 pointer-events-none"
                 :class="item.colorClass"
               ></div>
 
-              <!-- Card Wrapper -->
-              <div class="w-[85%] sm:w-[45%] bg-[#141420]/80 backdrop-blur-md border border-white/5 rounded-xl p-5 shadow-2xl hover:border-brand-orange/40 hover:shadow-brand-orange/5 transition-all duration-300 group">
-                
-                <!-- Card Header -->
-                <div class="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3 select-none">
-                  <div class="flex items-center gap-2">
-                    <component :is="item.icon" class="w-4 h-4 text-brand-orange-light" />
-                    <span class="text-white text-xs font-bold font-sans uppercase tracking-wider">{{ item.category }}</span>
-                  </div>
-                  <span class="text-xs font-mono font-bold bg-brand-orange/10 text-brand-orange-light px-2 py-0.5 rounded leading-none">
+              <!-- Card Wrapper (pl-11 on mobile to clear line & dot; sm:w-[46%] on desktop) -->
+              <div
+                class="w-full pl-11 sm:pl-0 sm:w-[46%]"
+                :class="idx % 2 === 0 ? 'sm:mr-auto' : 'sm:ml-auto'"
+              >
+                <div class="relative bg-[#141420]/95 backdrop-blur-md border border-white/10 sm:border-white/5 rounded-xl p-4 sm:p-5 shadow-2xl hover:border-brand-orange/40 hover:shadow-brand-orange/5 transition-all duration-300 group overflow-hidden">
+                  
+                  <!-- Watermark Year Background in Card -->
+                  <div class="absolute -right-2 -bottom-3 text-5xl sm:text-6xl font-black text-white/[0.03] font-mono select-none pointer-events-none">
                     {{ item.year }}
-                  </span>
-                </div>
-
-                <!-- Card Body -->
-                <h3 class="text-sm font-bold text-gray-100 mb-1 group-hover:text-brand-orange-light transition-colors leading-snug">{{ item.title }}</h3>
-                <h4 class="text-[11px] text-teal-400 font-semibold mb-2 leading-none">{{ item.subtitle }}</h4>
-                <p class="text-gray-400 text-[10px] leading-relaxed mb-3">{{ item.desc }}</p>
-
-                <!-- Technical tags / bullets -->
-                <div v-if="item.bulletPoints && item.bulletPoints.length" class="flex flex-col gap-1.5">
-                  <div
-                    v-for="(bullet, bIdx) in item.bulletPoints"
-                    :key="bIdx"
-                    class="text-[9px] text-gray-400 flex gap-1.5 items-start leading-relaxed"
-                  >
-                    <span class="text-teal-400 select-none mt-0.5">•</span>
-                    <span>{{ bullet }}</span>
                   </div>
-                </div>
 
-                <!-- Awards / Honors Section -->
-                <div v-if="item.honors && item.honors.length" class="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-1.5 select-none">
-                  <div class="flex items-center gap-1.5 text-[#eceb8e]">
-                    <Award class="w-3.5 h-3.5 shrink-0" />
-                    <span class="text-[9px] font-bold uppercase tracking-wider font-sans">Premiações / Conquistas</span>
+                  <!-- Card Header -->
+                  <div class="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3 select-none relative z-10">
+                    <div class="flex items-center gap-2">
+                      <component :is="item.icon" class="w-4 h-4 text-brand-orange-light shrink-0" />
+                      <span class="text-white text-xs font-bold font-sans uppercase tracking-wider">{{ item.category }}</span>
+                    </div>
+                    <span class="text-xs font-mono font-bold bg-brand-orange/10 text-brand-orange-light px-2 py-0.5 rounded leading-none shrink-0">
+                      {{ item.year }}
+                    </span>
                   </div>
-                  <div
-                    v-for="(honor, hIdx) in item.honors"
-                    :key="hIdx"
-                    class="text-[9px] text-[#eceb8e]/90 bg-[#eceb8e]/5 px-2 py-1 rounded border border-[#eceb8e]/10 leading-snug"
-                  >
-                    {{ honor }}
-                  </div>
-                </div>
 
+                  <!-- Card Body -->
+                  <h3 class="text-sm font-bold text-gray-100 mb-1 group-hover:text-brand-orange-light transition-colors leading-snug relative z-10">{{ item.title }}</h3>
+                  <h4 class="text-[11px] text-teal-400 font-semibold mb-2 leading-none relative z-10">{{ item.subtitle }}</h4>
+                  <p class="text-gray-400 text-[10px] leading-relaxed mb-3 relative z-10">{{ item.desc }}</p>
+
+                  <!-- Technical tags / bullets -->
+                  <div v-if="item.bulletPoints && item.bulletPoints.length" class="flex flex-col gap-1.5 relative z-10">
+                    <div
+                      v-for="(bullet, bIdx) in item.bulletPoints"
+                      :key="bIdx"
+                      class="text-[9px] text-gray-400 flex gap-1.5 items-start leading-relaxed"
+                    >
+                      <span class="text-teal-400 select-none mt-0.5">•</span>
+                      <span>{{ bullet }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Awards / Honors Section -->
+                  <div v-if="item.honors && item.honors.length" class="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-1.5 select-none relative z-10">
+                    <div class="flex items-center gap-1.5 text-[#eceb8e]">
+                      <Award class="w-3.5 h-3.5 shrink-0" />
+                      <span class="text-[9px] font-bold uppercase tracking-wider font-sans">Premiações / Conquistas</span>
+                    </div>
+                    <div
+                      v-for="(honor, hIdx) in item.honors"
+                      :key="hIdx"
+                      class="text-[9px] text-[#eceb8e]/90 bg-[#eceb8e]/5 px-2 py-1 rounded border border-[#eceb8e]/10 leading-snug"
+                    >
+                      {{ honor }}
+                    </div>
+                  </div>
+
+                </div>
               </div>
 
             </div>
@@ -1238,29 +1262,24 @@ const tokenizedLines = computed<CodeLine[]>(() => {
       <div v-else class="flex-grow flex overflow-hidden select-text relative">
         <div
           ref="editorContainer"
-          class="flex-grow p-3 overflow-y-auto font-mono text-xs sm:text-sm leading-relaxed text-[#abb2bf] select-text scroll-smooth"
+          class="flex-grow p-2.5 sm:p-3 overflow-y-auto overflow-x-auto font-mono text-xs sm:text-sm leading-relaxed text-[#abb2bf] select-text scroll-smooth"
           @scroll="handleEditorScroll"
         >
-          <div v-if="currentFile" class="flex flex-col select-text pb-12 min-w-max">
-            <!-- Floating banner to prompt running code -->
-            <div v-if="currentFile.language === 'typescript'" class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3.5 mb-5 mr-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs select-none">
-              <div class="flex items-center gap-2.5">
-                <span class="relative flex h-2.5 w-2.5 shrink-0">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <div class="leading-relaxed">
-                  <span class="text-emerald-400 font-bold uppercase tracking-wider font-sans mr-2">Dica Executável:</span>
-                  <span class="text-gray-200">Este arquivo TypeScript contém a história profissional compilável! Clique no botão de execução para abrir o visualizador de linha do tempo interativo com efeito Parallax.</span>
-                </div>
-              </div>
+          <div v-if="currentFile" class="flex flex-col select-text pb-12 w-full min-w-0">
+            <!-- Authentic VS Code CodeLens Header -->
+            <div v-if="currentFile.language === 'typescript'" class="flex items-center gap-2.5 px-4 py-1.5 mb-2 text-[11px] font-mono text-zinc-500 select-none border-b border-white/[0.04]">
               <button
                 @click="runCode"
-                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-md shadow-md shadow-emerald-600/10 transition duration-150 text-[10px] uppercase font-sans cursor-pointer flex items-center gap-1.5 border-none outline-none self-end sm:self-center shrink-0"
+                class="flex items-center gap-1.5 text-[#61afef] hover:text-[#528bff] hover:underline cursor-pointer transition-colors"
+                title="Executar arquivo no navegador (bernOS)"
               >
-                <Play class="w-3.5 h-3.5 fill-white stroke-none" />
-                <span>Rodar Código</span>
+                <Play class="w-3 h-3 fill-current" />
+                <span>Run Code</span>
               </button>
+              <span class="text-zinc-700">|</span>
+              <span class="text-zinc-500 hover:text-zinc-400 cursor-default">Debug</span>
+              <span class="text-zinc-700">|</span>
+              <span class="text-zinc-500 truncate">1 reference · Bernardo Villanova</span>
             </div>
             
             <!-- Code Lines rendering -->
@@ -1269,20 +1288,20 @@ const tokenizedLines = computed<CodeLine[]>(() => {
               :key="line.lineNumber"
               class="flex select-text relative group hover:bg-white/[0.02] py-0.5"
             >
-              <!-- Blame hover data column -->
-              <div class="w-[180px] text-[10px] text-gray-500/40 select-none shrink-0 pr-4 text-right cursor-default opacity-0 group-hover:opacity-100 transition-opacity duration-150 truncate">
+              <!-- Blame hover data column (desktop only) -->
+              <div class="hidden md:block w-[180px] text-[10px] text-gray-500/40 select-none shrink-0 pr-4 text-right cursor-default opacity-0 group-hover:opacity-100 transition-opacity duration-150 truncate">
                 {{ line.blame.author }} · {{ line.blame.time }} · "{{ line.blame.message }}"
               </div>
 
               <!-- Line Number column -->
-              <div class="w-9 text-right pr-3.5 text-gray-600 select-none shrink-0 border-r border-white/5">
+              <div class="w-7 sm:w-9 text-right pr-2 sm:pr-3.5 text-gray-600 select-none shrink-0 border-r border-white/5 text-[11px] sm:text-xs">
                 {{ line.lineNumber }}
               </div>
 
               <!-- Line Code Content column -->
-              <div class="pl-4 flex-grow whitespace-pre select-text flex items-center relative" :class="line.isMilestone ? 'bg-brand-orange/5 border-l-2 border-brand-orange py-0.5 my-0.5 pl-3' : ''">
+              <div class="pl-2.5 sm:pl-4 flex-grow whitespace-pre select-text flex items-center relative overflow-x-visible" :class="line.isMilestone ? 'bg-brand-orange/5 border-l-2 border-brand-orange py-0.5 my-0.5 pl-2 sm:pl-3' : ''">
                 <!-- Milestone Label -->
-                <span v-if="line.isMilestone" class="mr-2 text-[9px] bg-brand-orange text-black font-extrabold px-1 rounded select-none uppercase tracking-wider">
+                <span v-if="line.isMilestone" class="mr-2 text-[9px] bg-brand-orange text-black font-extrabold px-1 rounded select-none uppercase tracking-wider shrink-0">
                   Marco {{ line.milestoneYear }}
                 </span>
 
@@ -1316,8 +1335,8 @@ const tokenizedLines = computed<CodeLine[]>(() => {
           </div>
         </div>
 
-        <!-- Minimap (Right side) -->
-        <div v-if="currentFile" class="w-16 bg-[#161621] border-l border-white/5 flex flex-col overflow-hidden select-none shrink-0 text-[2px] leading-[3px] p-1 font-mono text-[#5c6370] opacity-40 hover:opacity-85 transition-opacity relative">
+        <!-- Minimap (Right side - desktop only) -->
+        <div v-if="currentFile" class="hidden md:flex w-16 bg-[#161621] border-l border-white/5 flex-col overflow-hidden select-none shrink-0 text-[2px] leading-[3px] p-1 font-mono text-[#5c6370] opacity-40 hover:opacity-85 transition-opacity relative">
           <!-- Scroll viewport overlay selector -->
           <div
             class="absolute left-0 right-0 bg-white/5 border border-white/10 pointer-events-none transition-all duration-100"
@@ -1336,26 +1355,26 @@ const tokenizedLines = computed<CodeLine[]>(() => {
       </div>
 
       <!-- Status Bar -->
-      <div class="h-6 bg-brand-orange/10 border-t border-white/5 px-3 flex items-center justify-between text-[10px] text-gray-400 shrink-0 font-sans">
-        <div class="flex items-center gap-3">
-          <span class="flex items-center gap-1 text-brand-orange font-bold uppercase tracking-wider"><Check class="w-3.5 h-3.5" /> Ready</span>
-          <span class="flex items-center gap-1"><GitBranch class="w-3 h-3 text-gray-500" /> main*</span>
+      <div class="h-6 bg-brand-orange/10 border-t border-white/5 px-2.5 sm:px-3 flex items-center justify-between text-[10px] text-gray-400 shrink-0 font-sans">
+        <div class="flex items-center gap-2 sm:gap-3 truncate">
+          <span class="flex items-center gap-1 text-brand-orange font-bold uppercase tracking-wider shrink-0"><Check class="w-3.5 h-3.5" /> Ready</span>
+          <span class="hidden xs:flex items-center gap-1 shrink-0"><GitBranch class="w-3 h-3 text-gray-500" /> main*</span>
           
           <!-- Career timeline progress bar indicator -->
           <template v-if="timelineProgress">
-            <span class="text-gray-600 select-none">|</span>
-            <div class="flex items-center gap-2 select-none">
-              <span class="font-bold text-gray-300 uppercase select-none">Progresso da Linha do Tempo:</span>
-              <span class="font-mono bg-brand-orange/20 text-brand-orange-light px-1.5 py-0.5 rounded leading-none text-[9px] select-none font-bold">
-                Jornada {{ timelineProgress.year }} ({{ timelineProgress.percentage }}%)
+            <span class="text-gray-600 select-none hidden sm:inline">|</span>
+            <div class="flex items-center gap-1.5 sm:gap-2 select-none truncate">
+              <span class="font-bold text-gray-300 uppercase select-none hidden md:inline">Progresso:</span>
+              <span class="font-mono bg-brand-orange/20 text-brand-orange-light px-1.5 py-0.5 rounded leading-none text-[9px] select-none font-bold shrink-0">
+                {{ timelineProgress.year }} ({{ timelineProgress.percentage }}%)
               </span>
-              <div class="w-24 bg-white/5 h-1.5 rounded overflow-hidden select-none border border-white/5">
+              <div class="w-16 sm:w-24 bg-white/5 h-1.5 rounded overflow-hidden select-none border border-white/5 shrink-0">
                 <div class="bg-brand-orange h-full rounded transition-all duration-150" :style="{ width: timelineProgress.percentage + '%' }"></div>
               </div>
             </div>
           </template>
         </div>
-        <div class="flex items-center gap-3 select-none">
+        <div class="hidden sm:flex items-center gap-3 select-none shrink-0">
           <span>Spaces: 2</span>
           <span>UTF-8</span>
           <span class="uppercase font-bold text-brand-orange tracking-wider">{{ currentFile?.language || 'Plain Text' }}</span>

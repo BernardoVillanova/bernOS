@@ -140,6 +140,7 @@ const stopResize = () => {
 
 // Double click titlebar to maximize
 const handleTitlebarDblClick = () => {
+  if (props.id === 'mail') return
   store.toggleMaximizeWindow(props.id)
 }
 
@@ -169,7 +170,9 @@ onUnmounted(() => {
       ref="windowRef"
       class="absolute rounded-xl flex flex-col border overflow-hidden backdrop-blur-xl transition-shadow duration-300"
       :class="[
-        isFocused ? 'window-active border-white/20' : 'window-inactive border-white/[0.08] bg-zinc-900/80',
+        store.theme === 'light'
+          ? (isFocused ? 'window-active border-black/15 shadow-[0_22px_60px_rgba(0,0,0,0.22)]' : 'window-inactive border-black/10 bg-[#e8e8ea]/90 shadow-[0_10px_30px_rgba(0,0,0,0.12)]')
+          : (isFocused ? 'window-active border-white/20' : 'window-inactive border-white/[0.08] bg-zinc-900/80'),
         win.isMaximized ? 'top-0 left-0 w-full! h-[calc(100vh-58px)]! rounded-none border-none' : ''
       ]"
       :style="{
@@ -183,7 +186,10 @@ onUnmounted(() => {
     >
       <!-- Title bar -->
       <div
-        class="h-9 px-3.5 bg-zinc-900/95 border-b border-white/[0.08] flex items-center justify-between cursor-default select-none shrink-0"
+        class="h-9 px-3.5 border-b flex items-center justify-between cursor-default select-none shrink-0 transition-colors"
+        :class="store.theme === 'light'
+          ? 'bg-[#ececef] border-black/10 text-zinc-800'
+          : 'bg-zinc-900/95 border-white/[0.08] text-zinc-300'"
         @mousedown="startDrag"
         @dblclick="handleTitlebarDblClick"
       >
@@ -204,16 +210,22 @@ onUnmounted(() => {
             <span class="opacity-0 group-hover:opacity-100 transition-opacity">-</span>
           </button>
           <button
-            class="win-btn w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 flex items-center justify-center text-[7px] text-[#006504] font-bold group relative cursor-pointer"
-            title="Maximizar"
-            @click="store.toggleMaximizeWindow(props.id)"
+            class="win-btn w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold group relative transition"
+            :class="props.id === 'mail'
+              ? 'bg-[#27c93f]/40 cursor-default'
+              : 'bg-[#27c93f] hover:bg-[#27c93f]/80 text-[#006504] cursor-pointer'"
+            :title="props.id === 'mail' ? 'Cartão de contato' : 'Maximizar'"
+            @click="props.id === 'mail' ? null : store.toggleMaximizeWindow(props.id)"
           >
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity">⤢</span>
+            <span v-if="props.id !== 'mail'" class="opacity-0 group-hover:opacity-100 transition-opacity">⤢</span>
           </button>
         </div>
 
         <!-- Title -->
-        <div class="text-[11px] font-medium text-zinc-300 flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2">
+        <div
+          class="text-[11px] font-medium flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2"
+          :class="store.theme === 'light' ? 'text-zinc-800 font-semibold' : 'text-zinc-300'"
+        >
           <slot name="icon"></slot>
           <span>{{ win.title }}</span>
         </div>
@@ -223,12 +235,15 @@ onUnmounted(() => {
       </div>
 
       <!-- Content Area -->
-      <div class="flex-grow overflow-auto bg-[#0d0e12]/95 text-zinc-100 relative flex flex-col">
+      <div
+        class="flex-grow h-[calc(100%-36px)] w-full overflow-hidden relative flex flex-col transition-colors min-h-0"
+        :class="store.theme === 'light' ? 'bg-[#f8f9fa] text-zinc-900' : 'bg-[#0d0e12]/95 text-zinc-100'"
+      >
         <slot></slot>
       </div>
 
       <!-- Window Resizer borders (8 directions) -->
-      <div v-if="!win.isMaximized" class="absolute inset-0 pointer-events-none select-none">
+      <div v-if="!win.isMaximized && props.id !== 'mail'" class="absolute inset-0 pointer-events-none select-none">
         <!-- Top Edge -->
         <div class="absolute top-0 left-1.5 right-1.5 h-1 cursor-n-resize pointer-events-auto z-[9999]" @mousedown="startResize($event, 'n')"></div>
         <!-- Bottom Edge -->

@@ -105,27 +105,27 @@ onUnmounted(() => {
   <div class="flex-grow flex flex-col h-full bg-[#121212] select-none text-gray-300 font-sans overflow-hidden">
     
     <!-- Top Nav Bar (Like Spotify modern layout) -->
-    <div class="h-14 bg-black/80 px-4 flex items-center justify-between shrink-0 border-b border-white/5">
-      <div class="flex items-center gap-3">
+    <div class="h-12 sm:h-14 bg-black/80 px-3 sm:px-4 flex items-center justify-between shrink-0 border-b border-white/5 gap-2">
+      <div class="hidden sm:flex items-center gap-2">
         <!-- Navigation arrows -->
-        <button class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition">
-          <ChevronLeft class="w-5 h-5" />
+        <button class="w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition">
+          <ChevronLeft class="w-4 h-4" />
         </button>
-        <button class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition">
-          <ChevronRight class="w-5 h-5" />
+        <button class="w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition">
+          <ChevronRight class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Search and Home pill -->
-      <div class="flex items-center gap-2 max-w-md w-full mx-auto">
-        <button class="w-9 h-9 rounded-full bg-[#1f1f1f] hover:scale-105 transition flex items-center justify-center text-white">
-          <Home class="w-5 h-5" />
+      <div class="flex items-center gap-2 max-w-xs sm:max-w-md w-full">
+        <button class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1f1f1f] hover:scale-105 transition flex items-center justify-center text-white shrink-0">
+          <Home class="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
-        <div class="relative flex-grow flex items-center bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full border border-transparent focus-within:border-white/20 transition h-9 px-3">
-          <Search class="w-4 h-4 text-gray-400 mr-2" />
+        <div class="relative flex-grow flex items-center bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-full border border-transparent focus-within:border-white/20 transition h-8 sm:h-9 px-3">
+          <Search class="w-3.5 h-3.5 text-gray-400 mr-2 shrink-0" />
           <input
             type="text"
-            placeholder="What do you want to play?"
+            placeholder="O que você quer ouvir?"
             class="bg-transparent text-white text-xs outline-none border-none p-0 w-full placeholder-gray-400"
             disabled
           />
@@ -133,19 +133,19 @@ onUnmounted(() => {
       </div>
 
       <!-- Profile side -->
-      <div class="flex items-center gap-4 text-gray-400">
-        <Bell class="w-5 h-5 hover:text-white transition cursor-pointer" />
-        <Users class="w-5 h-5 hover:text-white transition cursor-pointer" />
-        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-brand-orange to-red-500 flex items-center justify-center text-white font-bold text-xs select-none">
+      <div class="flex items-center gap-2 sm:gap-4 text-gray-400 shrink-0">
+        <Bell class="w-4 h-4 sm:w-5 sm:h-5 hover:text-white transition cursor-pointer hidden sm:block" />
+        <Users class="w-4 h-4 sm:w-5 sm:h-5 hover:text-white transition cursor-pointer hidden sm:block" />
+        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-red-500 flex items-center justify-center text-white font-bold text-xs select-none shadow">
           B
         </div>
       </div>
     </div>
 
     <!-- Inner layout -->
-    <div class="flex flex-grow h-[calc(100%-136px)] overflow-hidden">
-      <!-- Narrow Left Sidebar -->
-      <div class="w-[60px] bg-black/90 py-4 flex flex-col items-center gap-4 shrink-0">
+    <div class="flex flex-grow h-[calc(100%-112px)] sm:h-[calc(100%-136px)] overflow-hidden">
+      <!-- Narrow Left Sidebar (hidden on mobile, visible on desktop) -->
+      <div class="hidden md:flex w-[60px] bg-black/90 py-4 flex-col items-center gap-4 shrink-0">
         <button class="w-10 h-10 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-gray-400 hover:text-white flex items-center justify-center transition">
           <ListMusic class="w-5 h-5" />
         </button>
@@ -166,7 +166,7 @@ onUnmounted(() => {
           <div class="w-10 h-10 rounded-xl overflow-hidden shadow cursor-pointer border border-white/5 hover:scale-105 transition">
             <img src="/ventura.jpg" class="w-full h-full object-cover" />
           </div>
-          <div class="w-10 h-10 rounded-xl bg-[#2a1b18] flex items-center justify-center text-brand-orange font-bold text-sm border border-brand-orange/20">
+          <div class="w-10 h-10 rounded-xl bg-[#2a1b18] flex items-center justify-center text-amber-500 font-bold text-sm border border-amber-500/20">
             R
           </div>
           <div class="w-10 h-10 rounded-xl bg-[#182a24] flex items-center justify-center text-green-400 font-bold text-sm border border-green-500/20">
@@ -182,57 +182,54 @@ onUnmounted(() => {
       <div class="flex-grow bg-gradient-to-b from-[#0f3d4e] via-[#121212] to-[#121212] overflow-y-auto flex flex-col scrollbar-thin">
         
         <!-- Banner Header -->
-        <div class="p-6 pt-8 shrink-0 flex gap-6 items-end">
+        <div class="p-4 sm:p-6 sm:pt-8 shrink-0 flex gap-4 sm:gap-6 items-end">
           <img
             src="/ventura.jpg"
-            class="w-36 h-36 rounded-md shadow-2xl shrink-0 border border-white/5 animate-pulse-slow"
+            class="w-24 h-24 sm:w-36 sm:h-36 rounded-md shadow-2xl shrink-0 border border-white/5 animate-pulse-slow"
             alt="Ventura Cover"
           />
-          <div class="flex flex-col">
-            <span class="text-xs uppercase font-extrabold text-white tracking-wider">Album</span>
-            <h1 class="text-5xl font-extrabold text-white mt-1 mb-3 tracking-tight">Ventura</h1>
-            <p class="text-xs text-gray-300 flex items-center gap-1.5">
+          <div class="flex flex-col min-w-0">
+            <span class="text-[10px] sm:text-xs uppercase font-extrabold text-white tracking-wider">Álbum</span>
+            <h1 class="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mt-0.5 sm:mt-1 mb-1 sm:mb-3 tracking-tight truncate">Ventura</h1>
+            <p class="text-xs text-gray-300 flex items-center gap-1.5 flex-wrap">
               <span class="font-bold text-white hover:underline cursor-pointer">Los Hermanos</span>
               <span>•</span>
               <span>2003</span>
-              <span>•</span>
-              <span>15 songs, 51 min 37 sec</span>
+              <span class="hidden sm:inline">•</span>
+              <span class="hidden sm:inline">15 faixas, 51 min</span>
             </p>
           </div>
         </div>
 
         <!-- Action Bar -->
-        <div class="px-6 py-4 flex items-center justify-between">
-          <div class="flex items-center gap-5">
-            <button @click="togglePlay" class="w-12 h-12 rounded-full bg-[#1db954] hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-lg transition cursor-pointer">
-              <Play v-if="!isPlaying" class="w-5 h-5 fill-black translate-x-0.5" />
-              <Pause v-else class="w-5 h-5 fill-black" />
+        <div class="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3 sm:gap-5">
+            <button @click="togglePlay" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#1db954] hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-lg transition cursor-pointer">
+              <Play v-if="!isPlaying" class="w-4 h-4 sm:w-5 sm:h-5 fill-black translate-x-0.5" />
+              <Pause v-else class="w-4 h-4 sm:w-5 sm:h-5 fill-black" />
             </button>
-            <button class="text-gray-400 hover:text-white transition"><Shuffle class="w-5 h-5" /></button>
+            <button class="text-gray-400 hover:text-white transition"><Shuffle class="w-4 h-4 sm:w-5 sm:h-5" /></button>
             <button @click="isLiked = !isLiked" class="hover:text-white transition" :class="isLiked ? 'text-[#1db954]' : 'text-gray-400'">
-              <Heart class="w-6 h-6" :class="isLiked ? 'fill-[#1db954]' : ''" />
+              <Heart class="w-5 h-5 sm:w-6 sm:h-6" :class="isLiked ? 'fill-[#1db954]' : ''" />
             </button>
-            <!-- Download icon -->
-            <svg class="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 11h3l-4 4-4-4h3V8h2v5z"/></svg>
-            <span class="text-gray-400 hover:text-white font-bold text-lg tracking-widest cursor-pointer ml-1">...</span>
           </div>
           
-          <div class="text-xs text-gray-400 flex items-center gap-2 hover:text-white cursor-pointer">
-            <span>List</span>
+          <div class="text-xs text-gray-400 flex items-center gap-1.5 hover:text-white cursor-pointer">
+            <span class="hidden sm:inline">Lista</span>
             <ListMusic class="w-4 h-4" />
           </div>
         </div>
 
         <!-- Track List Table -->
-        <div class="px-6 pb-6">
+        <div class="px-3 sm:px-6 pb-6">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="text-gray-400 border-b border-white/10 uppercase tracking-widest text-[9px] h-8">
                 <th class="w-8 text-center">#</th>
-                <th>Title</th>
-                <th class="text-right pr-6">Plays</th>
-                <th class="w-16 text-right pr-4">
-                  <svg class="w-4 h-4 inline-block text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <th>Título</th>
+                <th class="text-right pr-6 hidden sm:table-cell">Reproduções</th>
+                <th class="w-14 sm:w-16 text-right pr-2 sm:pr-4">
+                  <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </th>
               </tr>
             </thead>
@@ -240,33 +237,33 @@ onUnmounted(() => {
               <tr
                 v-for="(track, idx) in tracks"
                 :key="track.id"
-                class="hover:bg-white/5 group border-b border-transparent h-12 transition rounded cursor-pointer"
+                class="hover:bg-white/5 active:bg-white/10 group border-b border-transparent h-11 sm:h-12 transition rounded cursor-pointer"
                 :class="currentTrackIndex === idx ? 'text-[#1db954] bg-white/5' : 'text-gray-300'"
-                @dblclick="playTrack(idx)"
+                @click="playTrack(idx)"
               >
                 <!-- Index / Play Button -->
                 <td class="text-center font-mono relative">
                   <span class="group-hover:opacity-0" :class="currentTrackIndex === idx ? 'text-[#1db954] font-bold' : ''">{{ idx + 1 }}</span>
-                  <button @click="playTrack(idx)" class="absolute inset-0 m-auto w-6 h-6 items-center justify-center hidden group-hover:flex text-white hover:text-[#1db954]">
+                  <button @click.stop="playTrack(idx)" class="absolute inset-0 m-auto w-6 h-6 items-center justify-center hidden group-hover:flex text-white hover:text-[#1db954]">
                     <Play class="w-3 h-3 fill-current" />
                   </button>
                 </td>
                 
                 <!-- Title & Artist -->
-                <td>
-                  <div class="flex flex-col">
-                    <span class="font-semibold text-sm" :class="currentTrackIndex === idx ? 'text-[#1db954]' : 'text-white'">{{ track.title }}</span>
-                    <span class="text-gray-400 group-hover:text-gray-300 text-xs mt-0.5">{{ track.artist }}</span>
+                <td class="pr-2">
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-semibold text-xs sm:text-sm truncate" :class="currentTrackIndex === idx ? 'text-[#1db954]' : 'text-white'">{{ track.title }}</span>
+                    <span class="text-gray-400 group-hover:text-gray-300 text-[11px] sm:text-xs truncate">{{ track.artist }}</span>
                   </div>
                 </td>
 
                 <!-- Plays -->
-                <td class="text-right pr-6 font-mono text-gray-400 group-hover:text-gray-300">
+                <td class="text-right pr-6 font-mono text-gray-400 group-hover:text-gray-300 hidden sm:table-cell">
                   {{ track.plays }}
                 </td>
 
                 <!-- Duration -->
-                <td class="text-right pr-4 font-mono text-gray-400 group-hover:text-gray-300">
+                <td class="text-right pr-2 sm:pr-4 font-mono text-gray-400 group-hover:text-gray-300 text-xs">
                   {{ formatTime(track.duration) }}
                 </td>
               </tr>
@@ -275,8 +272,8 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Right Sidebar (Ventura Panel from the print) -->
-      <div class="w-[260px] bg-[#121212] border-l border-white/5 p-4 flex flex-col gap-4 shrink-0 overflow-y-auto select-none">
+      <!-- Right Sidebar (Ventura Panel from the print - hidden on mobile/tablet) -->
+      <div class="hidden lg:flex w-[260px] bg-[#121212] border-l border-white/5 p-4 flex-col gap-4 shrink-0 overflow-y-auto select-none">
         <div class="flex justify-between items-center pb-2">
           <span class="font-bold text-white text-sm">Ventura</span>
           <span class="text-gray-400 hover:text-white text-lg font-bold cursor-pointer">...</span>
@@ -301,12 +298,12 @@ onUnmounted(() => {
         <!-- Switch to Video Button -->
         <button class="w-full py-1.5 mt-1 bg-white/10 hover:bg-white/20 text-white rounded-full text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
           <Video class="w-3.5 h-3.5" />
-          <span>Switch to video</span>
+          <span>Alternar para vídeo</span>
         </button>
 
         <!-- Related Music Videos section -->
         <div class="mt-4 flex flex-col gap-3">
-          <span class="font-bold text-white text-xs tracking-wide">Related music videos</span>
+          <span class="font-bold text-white text-xs tracking-wide">Vídeos relacionados</span>
           
           <!-- Card 1 -->
           <div class="flex items-center gap-3 bg-[#181818] hover:bg-[#242424] p-2 rounded-lg border border-white/5 cursor-pointer transition">
@@ -337,35 +334,35 @@ onUnmounted(() => {
     </div>
 
     <!-- Playback bar (Bottom) -->
-    <div class="h-20 bg-[#181818] border-t border-white/5 px-4 flex items-center justify-between shrink-0">
+    <div class="h-16 sm:h-20 bg-[#181818] border-t border-white/5 px-3 sm:px-4 flex items-center justify-between shrink-0 gap-2">
       
       <!-- Left side: Playing track info -->
-      <div class="flex items-center gap-3 w-1/4 min-w-[180px]">
-        <div class="w-14 h-14 rounded overflow-hidden shrink-0 border border-white/5 shadow-md">
+      <div class="flex items-center gap-2.5 sm:gap-3 flex-1 sm:w-1/4 sm:flex-initial min-w-0">
+        <div class="w-10 h-10 sm:w-14 sm:h-14 rounded overflow-hidden shrink-0 border border-white/5 shadow-md">
           <img src="/ventura.jpg" class="w-full h-full object-cover" />
         </div>
-        <div class="flex flex-col overflow-hidden leading-tight">
-          <span class="text-white text-sm font-semibold truncate hover:underline cursor-pointer">{{ currentTrack.title }}</span>
-          <span class="text-gray-400 text-xs truncate hover:underline cursor-pointer">{{ currentTrack.artist }}</span>
+        <div class="flex flex-col overflow-hidden leading-tight min-w-0">
+          <span class="text-white text-xs sm:text-sm font-semibold truncate hover:underline cursor-pointer">{{ currentTrack.title }}</span>
+          <span class="text-gray-400 text-[10px] sm:text-xs truncate hover:underline cursor-pointer">{{ currentTrack.artist }}</span>
         </div>
       </div>
 
       <!-- Center side: Playback controls & timeline -->
-      <div class="flex flex-col items-center gap-1.5 w-2/5 max-w-[500px]">
+      <div class="flex flex-col items-center gap-1 sm:gap-1.5 flex-1 max-w-[450px]">
         <!-- Controls -->
-        <div class="flex items-center gap-5 text-gray-400">
-          <button class="hover:text-white transition"><Shuffle class="w-4 h-4" /></button>
-          <button @click="prevTrack" class="hover:text-white transition"><SkipBack class="w-5 h-5 fill-current" /></button>
-          <button @click="togglePlay" class="w-8 h-8 rounded-full bg-white hover:scale-105 active:scale-95 text-black flex items-center justify-center cursor-pointer transition">
+        <div class="flex items-center gap-3 sm:gap-5 text-gray-400">
+          <button class="hover:text-white transition hidden sm:block"><Shuffle class="w-4 h-4" /></button>
+          <button @click="prevTrack" class="hover:text-white transition"><SkipBack class="w-4 h-4 sm:w-5 sm:h-5 fill-current" /></button>
+          <button @click="togglePlay" class="w-8 h-8 rounded-full bg-white hover:scale-105 active:scale-95 text-black flex items-center justify-center cursor-pointer transition shadow">
             <Play v-if="!isPlaying" class="w-4 h-4 fill-black translate-x-0.5" />
             <Pause v-else class="w-4 h-4 fill-black" />
           </button>
-          <button @click="nextTrack" class="hover:text-white transition"><SkipForward class="w-5 h-5 fill-current" /></button>
-          <button class="hover:text-white transition"><Repeat class="w-4 h-4" /></button>
+          <button @click="nextTrack" class="hover:text-white transition"><SkipForward class="w-4 h-4 sm:w-5 sm:h-5 fill-current" /></button>
+          <button class="hover:text-white transition hidden sm:block"><Repeat class="w-4 h-4" /></button>
         </div>
 
         <!-- Progress Timeline -->
-        <div class="flex items-center gap-2 w-full text-[10px] font-mono text-gray-400">
+        <div class="flex items-center gap-2 w-full text-[9px] sm:text-[10px] font-mono text-gray-400">
           <span>{{ formatTime(currentTime) }}</span>
           <div class="flex-grow h-1 rounded-full bg-white/10 relative overflow-hidden group/bar cursor-pointer">
             <div
@@ -377,8 +374,8 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Right side: Volume and extra controls -->
-      <div class="flex items-center gap-3 w-1/4 justify-end text-gray-400">
+      <!-- Right side: Volume and extra controls (hidden on small screens) -->
+      <div class="hidden md:flex items-center gap-3 w-1/4 justify-end text-gray-400">
         <button class="hover:text-white transition"><ListMusic class="w-4 h-4" /></button>
         <div class="flex items-center gap-2">
           <Volume2 class="w-4 h-4" />

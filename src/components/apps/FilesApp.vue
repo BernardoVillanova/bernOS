@@ -1,21 +1,66 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useWindowStore } from '../../stores/windowStore'
 import {
-  Folder,
-  Star,
-  Briefcase,
-  BookOpen,
   Search,
   Grid,
   List as ListIcon,
   RefreshCw,
   ExternalLink,
   ChevronRight,
-  ArrowLeft,
-  Home,
-  FileCode2,
+  ChevronLeft,
+  Star,
+  HardDrive,
+  Folder as FolderIcon,
+  Image as ImageIcon,
   X
 } from 'lucide-vue-next'
+
+const store = useWindowStore()
+
+export interface MediaFile {
+  id: string
+  name: string
+  description: string
+  location: string
+  date: string
+  src: string
+  size: string
+  resolution: string
+}
+
+const mediaFiles: MediaFile[] = [
+  {
+    id: 'photo-google',
+    name: 'Google Campus SP.png',
+    description: 'Visita ao campus do Google em São Paulo em eventos da comunidade de tecnologia e desenvolvedores.',
+    location: 'São Paulo, SP · Brasil',
+    date: '2024',
+    src: '/images/bern-google.png',
+    size: '1.4 MB',
+    resolution: '1201 × 1600'
+  },
+  {
+    id: 'photo-linuxtips',
+    name: 'LINUXtips Local Brasil.png',
+    description: 'Encontro presencial da comunidade LINUXtips Local Brasil com Jeferson Fernando (Fundador do LINUXtips).',
+    location: 'São Paulo, SP · Brasil',
+    date: '2023',
+    src: '/images/bern-linuxtips.png',
+    size: '3.1 MB',
+    resolution: '1200 × 1600'
+  },
+  {
+    id: 'photo-laptop',
+    name: 'Workstation & Dev.png',
+    description: 'Estação de trabalho e ambiente de desenvolvimento diário com Linux e terminal.',
+    location: 'Rio Claro, SP · Brasil',
+    date: '2025',
+    src: '/images/bern-laptop.png',
+    size: '167 KB',
+    resolution: '800 × 800'
+  }
+]
 
 interface Repository {
   id: number
@@ -33,26 +78,24 @@ interface Repository {
   folder: 'Trabalho' | 'Estudos' | null
 }
 
-// State management
 const repos = ref<Repository[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
 const searchQuery = ref('')
 const viewMode = ref<'grid' | 'list'>('grid')
-const sortBy = ref<'recent' | 'oldest' | 'stars' | 'name'>('recent')
 const selectedRepo = ref<Repository | null>(null)
-const currentPath = ref<string[]>(['Home']) // Navigation: 'Home', 'Destaques', 'Trabalho', 'Estudos'
+const selectedMedia = ref<MediaFile | null>(null)
+const currentPath = ref<string[]>(['bernardo', 'Repositories'])
 
-// Filter states (Sidebar)
-const selectedLanguageFilter = ref<string | null>(null)
-const selectedYearFilter = ref<string | null>(null)
+const closeInspector = () => {
+  selectedRepo.value = null
+  selectedMedia.value = null
+}
 
-// Drag and drop states
-const draggedRepo = ref<Repository | null>(null)
-const activeDragOverFolder = ref<string | null>(null)
+// Active sidebar item: 'all' | 'favorites' | 'work' | 'studies' | 'tag-{color}'
+const activeSidebarItem = ref<string>('all')
 
-// API Fetching functions
 const fetchRepos = async (force = false) => {
   loading.value = true
   error.value = null
@@ -65,7 +108,7 @@ const fetchRepos = async (force = false) => {
     const data = await res.json()
     repos.value = data
   } catch (err: any) {
-    error.value = err.message || 'Erro desconhecido.'
+    error.value = err.message || 'Erro ao carregar repositórios.'
   } finally {
     loading.value = false
   }
@@ -108,35 +151,86 @@ const moveRepoToFolder = async (repo: Repository, folder: 'Trabalho' | 'Estudos'
   }
 }
 
-// Helper: Formatter for time elapsed
+const selectSidebar = (item: string) => {
+  activeSidebarItem.value = item
+  store.filesActiveCategory = item
+  selectedRepo.value = null
+  selectedMedia.value = null
+  if (item === 'all') {
+    currentPath.value = ['bernardo', 'Repositories']
+  } else if (item === 'favorites') {
+    currentPath.value = ['bernardo', 'Repositories', 'Destaques']
+  } else if (item === 'work') {
+    currentPath.value = ['bernardo', 'Repositories', 'Trabalho']
+  } else if (item === 'studies') {
+    currentPath.value = ['bernardo', 'Repositories', 'Estudos']
+  } else if (item === 'media') {
+    currentPath.value = ['bernardo', 'Fotos & Eventos']
+  } else if (item.startsWith('tag-')) {
+    currentPath.value = ['Tags', item.replace('tag-', '')]
+  }
+}
+
+const openFolder = (folderName: string) => {
+  if (folderName === 'Trabalho') selectSidebar('work')
+  else if (folderName === 'Estudos') selectSidebar('studies')
+  else if (folderName === 'Destaques') selectSidebar('favorites')
+  else if (folderName === 'Fotos') selectSidebar('media')
+}
+
+const navigateUp = () => {
+  if (currentPath.value.length > 2) {
+    selectSidebar('all')
+  }
+}
+
+const filteredRepos = computed(() => {
+  let list = [...repos.value]
+
+  if (activeSidebarItem.value === 'favorites') {
+    list = list.filter(r => r.is_favorite)
+  } else if (activeSidebarItem.value === 'work') {
+    list = list.filter(r => r.folder === 'Trabalho')
+  } else if (activeSidebarItem.value === 'studies') {
+    list = list.filter(r => r.folder === 'Estudos')
+  } else if (activeSidebarItem.value === 'tag-blue') {
+    list = list.filter(r => r.language?.toLowerCase() === 'typescript' || r.language?.toLowerCase() === 'go')
+  } else if (activeSidebarItem.value === 'tag-green') {
+    list = list.filter(r => r.language?.toLowerCase() === 'vue' || r.language?.toLowerCase() === 'shell')
+  } else if (activeSidebarItem.value === 'tag-orange') {
+    list = list.filter(r => r.language?.toLowerCase() === 'html' || r.name.toLowerCase().includes('terraform'))
+  }
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase().trim()
+    list = list.filter(
+      r =>
+        r.name.toLowerCase().includes(q) ||
+        (r.description && r.description.toLowerCase().includes(q)) ||
+        (r.language && r.language.toLowerCase().includes(q))
+    )
+  }
+
+  return list
+})
+
 const timeAgo = (dateStr: string) => {
   if (!dateStr) return ''
   const now = new Date()
   const updated = new Date(dateStr)
-  const diffTime = Math.abs(now.getTime() - updated.getTime())
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) {
-    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
-    if (diffHours === 0) return 'Hoje'
-    return `Há ${diffHours}h`
-  }
+  const diffDays = Math.floor(Math.abs(now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return 'Hoje'
   if (diffDays === 1) return 'Ontem'
-  if (diffDays < 30) return `Há ${diffDays}d`
-  const diffMonths = Math.floor(diffDays / 30)
-  if (diffMonths === 1) return 'Há 1 mês'
-  if (diffMonths < 12) return `Há ${diffMonths}m`
-  const diffYears = Math.floor(diffMonths / 12)
-  return `Há ${diffYears}a`
+  if (diffDays < 30) return `Há ${diffDays} dias`
+  if (diffDays < 365) return `Há ${Math.floor(diffDays / 30)} meses`
+  return `Há ${Math.floor(diffDays / 365)} anos`
 }
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-// Subtle standard language dot colors (GitHub Official Style)
 const getLanguageDotColor = (lang: string) => {
   const l = (lang || '').toLowerCase()
   if (l === 'typescript') return 'bg-[#3178c6]'
@@ -146,184 +240,18 @@ const getLanguageDotColor = (lang: string) => {
   if (l === 'shell' || l === 'bash') return 'bg-[#89e051]'
   if (l === 'vue') return 'bg-[#41b883]'
   if (l === 'html') return 'bg-[#e34c26]'
-  if (l === 'css') return 'bg-[#563d7c]'
-  if (l === 'java') return 'bg-[#b07219]'
   return 'bg-zinc-400'
 }
 
-// Proportions mock for drawer breakdown
-const getMockLanguagesProportions = (mainLang: string) => {
-  const l = (mainLang || '').toLowerCase()
-  if (l === 'typescript') {
-    return [
-      { name: 'TypeScript', percentage: 78, color: '#3178c6' },
-      { name: 'Vue', percentage: 15, color: '#41b883' },
-      { name: 'CSS', percentage: 7, color: '#563d7c' }
-    ]
-  }
-  if (l === 'python') {
-    return [
-      { name: 'Python', percentage: 92, color: '#3572A5' },
-      { name: 'Shell', percentage: 5, color: '#89e051' },
-      { name: 'Docker', percentage: 3, color: '#384d54' }
-    ]
-  }
-  if (l === 'go') {
-    return [
-      { name: 'Go', percentage: 89, color: '#00ADD8' },
-      { name: 'Shell', percentage: 8, color: '#89e051' },
-      { name: 'Makefile', percentage: 3, color: '#427819' }
-    ]
-  }
-  if (l === 'vue') {
-    return [
-      { name: 'Vue', percentage: 68, color: '#41b883' },
-      { name: 'TypeScript', percentage: 22, color: '#3178c6' },
-      { name: 'CSS', percentage: 10, color: '#563d7c' }
-    ]
-  }
-  return [
-    { name: mainLang || 'Outro', percentage: 80, color: '#3178c6' },
-    { name: 'Outros', percentage: 20, color: '#52525b' }
-  ]
-}
-
-const activeFolderName = computed(() => {
-  return currentPath.value.length > 1 ? currentPath.value[1] : null
-})
-
-// Main filtering logic
-const filteredRepos = computed(() => {
-  let list = [...repos.value]
-
-  const folder = activeFolderName.value
-  if (folder === 'Destaques') {
-    list = list.filter(r => r.is_favorite)
-  } else if (folder === 'Trabalho') {
-    list = list.filter(r => r.folder === 'Trabalho')
-  } else if (folder === 'Estudos') {
-    list = list.filter(r => r.folder === 'Estudos')
-  } else {
-    list = list.filter(r => r.folder === null)
-  }
-
-  if (selectedLanguageFilter.value) {
-    list = list.filter(r => r.language === selectedLanguageFilter.value)
-  }
-
-  if (selectedYearFilter.value) {
-    list = list.filter(r => r.created_at && new Date(r.created_at).getFullYear().toString() === selectedYearFilter.value)
-  }
-
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase().trim()
-    list = list.filter(r => 
-      r.name.toLowerCase().includes(q) || 
-      (r.description || '').toLowerCase().includes(q) ||
-      r.topics.some(t => t.toLowerCase().includes(q))
-    )
-  }
-
-  list.sort((a, b) => {
-    if (sortBy.value === 'recent') {
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+watch(
+  [() => store.filesActiveCategory, () => store.photosOpenTrigger],
+  ([newCat]) => {
+    if (newCat) {
+      selectSidebar(newCat)
     }
-    if (sortBy.value === 'oldest') {
-      return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
-    }
-    if (sortBy.value === 'stars') {
-      return b.stars - a.stars
-    }
-    if (sortBy.value === 'name') {
-      return a.name.localeCompare(b.name)
-    }
-    return 0
-  })
-
-  return list
-})
-
-const currentViewLanguages = computed(() => {
-  const langs = new Set<string>()
-  let baseList = [...repos.value]
-  const folder = activeFolderName.value
-  if (folder === 'Destaques') {
-    baseList = baseList.filter(r => r.is_favorite)
-  } else if (folder === 'Trabalho') {
-    baseList = baseList.filter(r => r.folder === 'Trabalho')
-  } else if (folder === 'Estudos') {
-    baseList = baseList.filter(r => r.folder === 'Estudos')
-  } else {
-    baseList = baseList.filter(r => r.folder === null)
-  }
-  
-  baseList.forEach(r => {
-    if (r.language && r.language !== 'Other') {
-      langs.add(r.language)
-    }
-  })
-  return Array.from(langs).sort()
-})
-
-const navigateToFolder = (folder: string) => {
-  currentPath.value = ['Home', folder]
-  selectedRepo.value = null
-  selectedYearFilter.value = null
-}
-
-const navigateBack = () => {
-  if (currentPath.value.length > 1) {
-    currentPath.value = ['Home']
-    selectedRepo.value = null
-  }
-}
-
-const handleSidebarShortcut = (type: 'all' | 'favorites' | 'folder', payload?: any) => {
-  if (type === 'all') {
-    currentPath.value = ['Home']
-    selectedLanguageFilter.value = null
-    selectedYearFilter.value = null
-  } else if (type === 'favorites') {
-    navigateToFolder('Destaques')
-    selectedLanguageFilter.value = null
-  } else if (type === 'folder') {
-    navigateToFolder(payload)
-    selectedLanguageFilter.value = null
-  }
-  selectedRepo.value = null
-}
-
-const handleDragStart = (e: DragEvent, repo: Repository) => {
-  draggedRepo.value = repo
-  if (e.dataTransfer) {
-    e.dataTransfer.setData('text/plain', repo.id.toString())
-    e.dataTransfer.effectAllowed = 'move'
-  }
-}
-
-const handleDragOver = (_e: DragEvent, folder: string) => {
-  activeDragOverFolder.value = folder
-}
-
-const handleDragLeave = (_e: DragEvent, folder: string) => {
-  if (activeDragOverFolder.value === folder) {
-    activeDragOverFolder.value = null
-  }
-}
-
-const handleDrop = async (_e: DragEvent, folder: 'Destaques' | 'Trabalho' | 'Estudos') => {
-  activeDragOverFolder.value = null
-  if (!draggedRepo.value) return
-  
-  const repo = draggedRepo.value
-  draggedRepo.value = null
-
-  if (folder === 'Destaques') {
-    await toggleFavorite(repo, true)
-  } else {
-    await moveRepoToFolder(repo, folder)
-  }
-}
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   fetchRepos()
@@ -331,628 +259,723 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex-grow flex h-full bg-[#0d0e12] text-zinc-300 font-sans text-xs select-none relative overflow-hidden">
-    
-    <!-- Desktop Sidebar (macOS Finder Style) -->
-    <div class="hidden md:flex w-[190px] bg-[#090a0d] border-r border-white/[0.08] p-3 flex-col gap-5 shrink-0 overflow-y-auto">
-      
-      <!-- Favoritos -->
-      <div>
-        <p class="text-zinc-500 uppercase font-semibold tracking-wider text-[10px] mb-1.5 px-2.5">Navegação</p>
-        <ul class="flex flex-col gap-0.5">
-          <li
-            class="flex items-center justify-between py-1.5 px-2.5 rounded-lg cursor-pointer transition text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-            :class="currentPath.length === 1 ? 'bg-white/[0.09] text-white font-medium' : ''"
-            @click="handleSidebarShortcut('all')"
-          >
-            <div class="flex items-center gap-2">
-              <Home class="w-3.5 h-3.5 text-zinc-400" />
-              <span>Todos</span>
-            </div>
-            <span class="text-[9px] text-zinc-500 font-mono">{{ repos.length }}</span>
-          </li>
-          
-          <li
-            class="flex items-center justify-between py-1.5 px-2.5 rounded-lg cursor-pointer transition text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-            :class="activeFolderName === 'Destaques' ? 'bg-white/[0.09] text-white font-medium' : ''"
-            @click="handleSidebarShortcut('favorites')"
-          >
-            <div class="flex items-center gap-2">
-              <Star class="w-3.5 h-3.5 text-amber-400 fill-amber-400/30" />
-              <span>Destaques</span>
-            </div>
-            <span class="text-[9px] text-zinc-500 font-mono">
-              {{ repos.filter(r => r.is_favorite).length }}
-            </span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Pastas -->
-      <div>
-        <p class="text-zinc-500 uppercase font-semibold tracking-wider text-[10px] mb-1.5 px-2.5">Pastas</p>
-        <ul class="flex flex-col gap-0.5">
-          <li
-            class="flex items-center justify-between py-1.5 px-2.5 rounded-lg cursor-pointer transition text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-            :class="activeFolderName === 'Trabalho' ? 'bg-white/[0.09] text-white font-medium' : ''"
-            @click="handleSidebarShortcut('folder', 'Trabalho')"
-          >
-            <div class="flex items-center gap-2">
-              <Briefcase class="w-3.5 h-3.5 text-zinc-400" />
-              <span>Trabalho</span>
-            </div>
-            <span class="text-[9px] text-zinc-500 font-mono">
-              {{ repos.filter(r => r.folder === 'Trabalho').length }}
-            </span>
-          </li>
-
-          <li
-            class="flex items-center justify-between py-1.5 px-2.5 rounded-lg cursor-pointer transition text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-            :class="activeFolderName === 'Estudos' ? 'bg-white/[0.09] text-white font-medium' : ''"
-            @click="handleSidebarShortcut('folder', 'Estudos')"
-          >
-            <div class="flex items-center gap-2">
-              <BookOpen class="w-3.5 h-3.5 text-zinc-400" />
-              <span>Estudos</span>
-            </div>
-            <span class="text-[9px] text-zinc-500 font-mono">
-              {{ repos.filter(r => r.folder === 'Estudos').length }}
-            </span>
-          </li>
-        </ul>
-      </div>
-
-    </div>
-
-    <!-- Main Workspace -->
-    <div class="flex-grow flex flex-col min-w-0 bg-[#0d0e12]">
-      
-      <!-- Top Navigation & Search Toolbar -->
-      <div class="h-11 border-b border-white/[0.08] px-3.5 flex items-center justify-between bg-[#0a0b0e]/70 shrink-0 gap-3">
-        
-        <!-- Breadcrumb / Back button -->
-        <div class="flex items-center gap-2 min-w-0">
+  <div
+    class="flex-grow flex flex-col h-full font-sans select-none overflow-hidden transition-colors duration-300"
+    :class="store.theme === 'light' ? 'bg-white text-zinc-800' : 'bg-[#1e1e24] text-zinc-200'"
+  >
+    <!-- macOS Finder Unified Top Toolbar -->
+    <div
+      class="h-12 border-b flex items-center justify-between px-3 sm:px-4 shrink-0 gap-2 transition-colors duration-300"
+      :class="store.theme === 'light'
+        ? 'bg-[#f5f5f7] border-black/10'
+        : 'bg-[#25252d] border-white/10'"
+    >
+      <!-- Navigation Buttons (Pill) -->
+      <div class="flex items-center gap-2">
+        <div
+          class="flex items-center rounded-lg border overflow-hidden shadow-2xs"
+          :class="store.theme === 'light' ? 'bg-white border-black/10' : 'bg-[#2d2d38] border-white/10'"
+        >
           <button
-            class="p-1.5 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer shrink-0"
-            :disabled="currentPath.length <= 1"
-            @click="navigateBack"
+            @click="navigateUp"
+            :disabled="currentPath.length <= 2"
+            class="p-1.5 hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
             title="Voltar"
           >
-            <ArrowLeft class="w-3.5 h-3.5" />
+            <ChevronLeft class="w-3.5 h-3.5" />
           </button>
-
-          <div class="flex items-center gap-1 text-[11px] text-zinc-400 overflow-x-auto select-none whitespace-nowrap scrollbar-none">
-            <template v-for="(node, idx) in currentPath" :key="idx">
-              <ChevronRight v-if="idx > 0" class="w-3 h-3 shrink-0 text-zinc-600" />
-              <span
-                class="hover:text-white cursor-pointer truncate font-medium max-w-[120px]"
-                :class="idx === currentPath.length - 1 ? 'text-zinc-100 font-semibold' : ''"
-                @click="currentPath = currentPath.slice(0, idx + 1); selectedRepo = null"
-              >
-                {{ node }}
-              </span>
-            </template>
-          </div>
+          <div class="w-[1px] h-3.5" :class="store.theme === 'light' ? 'bg-black/10' : 'bg-white/10'"></div>
+          <button
+            disabled
+            class="p-1.5 opacity-30 cursor-default"
+          >
+            <ChevronRight class="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        <!-- Search Bar -->
-        <div class="relative flex-1 max-w-64 shrink-0">
-          <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+        <!-- Current Folder Title -->
+        <span class="text-xs font-semibold tracking-tight truncate max-w-[140px] sm:max-w-none">
+          {{ currentPath[currentPath.length - 1] }}
+        </span>
+      </div>
+
+      <!-- Center: View Mode Segmented Control -->
+      <div
+        class="hidden sm:flex items-center rounded-lg border p-0.5 shadow-2xs"
+        :class="store.theme === 'light' ? 'bg-[#e5e5ea] border-black/10' : 'bg-[#181820] border-white/10'"
+      >
+        <button
+          @click="viewMode = 'grid'"
+          class="px-2.5 py-1 rounded-md text-xs transition cursor-pointer flex items-center gap-1.5"
+          :class="viewMode === 'grid'
+            ? (store.theme === 'light' ? 'bg-white text-zinc-900 shadow-xs font-medium' : 'bg-[#31313e] text-white shadow-xs font-medium')
+            : 'text-zinc-500 hover:text-zinc-700'"
+          title="Visualização em Ícones"
+        >
+          <Grid class="w-3.5 h-3.5" />
+          <span class="text-[11px]">Ícones</span>
+        </button>
+        <button
+          @click="viewMode = 'list'"
+          class="px-2.5 py-1 rounded-md text-xs transition cursor-pointer flex items-center gap-1.5"
+          :class="viewMode === 'list'
+            ? (store.theme === 'light' ? 'bg-white text-zinc-900 shadow-xs font-medium' : 'bg-[#31313e] text-white shadow-xs font-medium')
+            : 'text-zinc-500 hover:text-zinc-700'"
+          title="Visualização em Lista"
+        >
+          <ListIcon class="w-3.5 h-3.5" />
+          <span class="text-[11px]">Lista</span>
+        </button>
+      </div>
+
+      <!-- Right: Search Bar & Refresh -->
+      <div class="flex items-center gap-2">
+        <div
+          class="relative flex items-center rounded-lg border px-2.5 py-1 transition-all"
+          :class="store.theme === 'light'
+            ? 'bg-white border-black/15 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500/20'
+            : 'bg-[#1a1a22] border-white/10 focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20'"
+        >
+          <Search class="w-3 h-3 text-zinc-400 mr-1.5 shrink-0" />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Buscar repositórios..."
-            class="w-full bg-zinc-900/70 border border-white/[0.08] rounded-lg pl-8 pr-7 py-1 text-xs text-zinc-200 placeholder-zinc-500 outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10 select-text transition"
+            placeholder="Buscar"
+            class="bg-transparent text-xs outline-none w-24 sm:w-36 select-text"
           />
-          <button 
-            v-if="searchQuery" 
-            @click="searchQuery = ''" 
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer rounded-full p-0.5"
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="text-zinc-400 hover:text-zinc-600 ml-1 cursor-pointer"
           >
             <X class="w-3 h-3" />
           </button>
         </div>
 
-        <!-- Toolbar Buttons (Sort, View Mode, Refresh) -->
-        <div class="flex items-center gap-1.5 shrink-0 select-none">
-          <!-- Refresh -->
+        <button
+          @click="fetchRepos(true)"
+          :disabled="loading"
+          class="p-1.5 rounded-lg border transition cursor-pointer"
+          :class="store.theme === 'light' ? 'bg-white hover:bg-zinc-100 border-black/10' : 'bg-[#2d2d38] hover:bg-[#383846] border-white/10'"
+          title="Recarregar repositórios do GitHub"
+        >
+          <RefreshCw class="w-3.5 h-3.5" :class="loading ? 'animate-spin text-sky-500' : 'text-zinc-400'" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Finder Body (Sidebar + Content + Quick Look Inspector) -->
+    <div class="flex-grow flex overflow-hidden relative">
+      <!-- Authentic macOS Sidebar -->
+      <div
+        class="hidden md:flex w-52 shrink-0 border-r flex-col p-3 gap-4 overflow-y-auto select-none transition-colors duration-300"
+        :class="store.theme === 'light'
+          ? 'bg-[#f6f6f8]/90 border-black/10 text-zinc-700'
+          : 'bg-[#23232c]/90 border-white/10 text-zinc-300'"
+      >
+        <!-- Favoritos Section -->
+        <div class="flex flex-col gap-1">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 px-2 mb-0.5">Favoritos</span>
           <button
-            class="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition cursor-pointer flex items-center justify-center shrink-0 active:scale-95"
-            :class="loading ? 'animate-spin text-sky-400' : ''"
-            :disabled="loading"
-            @click="fetchRepos(true)"
-            title="Sincronizar GitHub"
+            @click="selectSidebar('all')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer font-medium"
+            :class="activeSidebarItem === 'all'
+              ? (store.theme === 'light' ? 'bg-black/10 text-zinc-950 font-semibold' : 'bg-white/15 text-white font-semibold')
+              : 'hover:bg-black/5 hover:text-zinc-900'"
           >
-            <RefreshCw class="w-3.5 h-3.5" />
+            <HardDrive class="w-3.5 h-3.5 text-sky-500" />
+            <span>Todos os Repos</span>
+            <span class="ml-auto text-[10px] opacity-60 font-mono">{{ repos.length }}</span>
           </button>
 
-          <!-- Sorting Select -->
-          <div class="hidden sm:block">
-            <select
-              v-model="sortBy"
-              class="bg-zinc-900/70 border border-white/[0.08] text-zinc-300 hover:text-white text-[11px] rounded-lg px-2 py-1 outline-none cursor-pointer focus:border-white/20"
-            >
-              <option value="recent">Recentes</option>
-              <option value="oldest">Antigos</option>
-              <option value="stars">Mais Estrelas</option>
-              <option value="name">Nome A-Z</option>
-            </select>
-          </div>
-
-          <!-- View Mode Toggle -->
-          <div class="flex bg-zinc-900/80 p-0.5 rounded-lg border border-white/[0.08]">
-            <button
-              class="p-1 rounded cursor-pointer transition"
-              :class="viewMode === 'grid' ? 'bg-white/10 text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-300'"
-              @click="viewMode = 'grid'"
-            >
-              <Grid class="w-3 h-3" />
-            </button>
-            <button
-              class="p-1 rounded cursor-pointer transition"
-              :class="viewMode === 'list' ? 'bg-white/10 text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-300'"
-              @click="viewMode = 'list'"
-            >
-              <ListIcon class="w-3 h-3" />
-            </button>
-          </div>
+          <button
+            @click="selectSidebar('favorites')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer font-medium"
+            :class="activeSidebarItem === 'favorites'
+              ? (store.theme === 'light' ? 'bg-black/10 text-zinc-950 font-semibold' : 'bg-white/15 text-white font-semibold')
+              : 'hover:bg-black/5 hover:text-zinc-900'"
+          >
+            <Star class="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+            <span>Destaques</span>
+            <span class="ml-auto text-[10px] opacity-60 font-mono">{{ repos.filter(r => r.is_favorite).length }}</span>
+          </button>
         </div>
 
+        <!-- Locais / Pastas Section -->
+        <div class="flex flex-col gap-1">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 px-2 mb-0.5">Categorias</span>
+          <button
+            @click="selectSidebar('work')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer font-medium"
+            :class="activeSidebarItem === 'work'
+              ? (store.theme === 'light' ? 'bg-black/10 text-zinc-950 font-semibold' : 'bg-white/15 text-white font-semibold')
+              : 'hover:bg-black/5 hover:text-zinc-900'"
+          >
+            <FolderIcon class="w-3.5 h-3.5 text-blue-500" />
+            <span>Trabalho</span>
+            <span class="ml-auto text-[10px] opacity-60 font-mono">{{ repos.filter(r => r.folder === 'Trabalho').length }}</span>
+          </button>
+
+          <button
+            @click="selectSidebar('studies')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer font-medium"
+            :class="activeSidebarItem === 'studies'
+              ? (store.theme === 'light' ? 'bg-black/10 text-zinc-950 font-semibold' : 'bg-white/15 text-white font-semibold')
+              : 'hover:bg-black/5 hover:text-zinc-900'"
+          >
+            <FolderIcon class="w-3.5 h-3.5 text-emerald-500" />
+            <span>Estudos & TCC</span>
+            <span class="ml-auto text-[10px] opacity-60 font-mono">{{ repos.filter(r => r.folder === 'Estudos').length }}</span>
+          </button>
+
+          <button
+            @click="selectSidebar('media')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer font-medium"
+            :class="activeSidebarItem === 'media'
+              ? (store.theme === 'light' ? 'bg-black/10 text-zinc-950 font-semibold' : 'bg-white/15 text-white font-semibold')
+              : 'hover:bg-black/5 hover:text-zinc-900'"
+          >
+            <ImageIcon class="w-3.5 h-3.5 text-purple-500" />
+            <span>Fotos & Eventos</span>
+            <span class="ml-auto text-[10px] opacity-60 font-mono">{{ mediaFiles.length }}</span>
+          </button>
+        </div>
+
+        <!-- macOS Tags Section -->
+        <div class="flex flex-col gap-1 mt-auto pt-2 border-t" :class="store.theme === 'light' ? 'border-black/5' : 'border-white/5'">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 px-2 mb-0.5">Etiquetas</span>
+          <button
+            @click="selectSidebar('tag-blue')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer"
+            :class="activeSidebarItem === 'tag-blue' ? (store.theme === 'light' ? 'bg-black/10 font-semibold' : 'bg-white/15 font-semibold') : 'hover:bg-black/5'"
+          >
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-2xs"></span>
+            <span>TypeScript & Go</span>
+          </button>
+          <button
+            @click="selectSidebar('tag-green')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer"
+            :class="activeSidebarItem === 'tag-green' ? (store.theme === 'light' ? 'bg-black/10 font-semibold' : 'bg-white/15 font-semibold') : 'hover:bg-black/5'"
+          >
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-2xs"></span>
+            <span>Vue & Shell</span>
+          </button>
+          <button
+            @click="selectSidebar('tag-orange')"
+            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer"
+            :class="activeSidebarItem === 'tag-orange' ? (store.theme === 'light' ? 'bg-black/10 font-semibold' : 'bg-white/15 font-semibold') : 'hover:bg-black/5'"
+          >
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-2xs"></span>
+            <span>IaC & Cloud</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Mobile Navigation Quick Tabs (Visible only on mobile/narrow screens) -->
-      <div class="md:hidden flex items-center gap-1 px-3 py-2 border-b border-white/[0.08] bg-[#090a0d] overflow-x-auto scrollbar-none shrink-0">
-        <button
-          class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0 transition"
-          :class="currentPath.length === 1 ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200'"
-          @click="handleSidebarShortcut('all')"
+      <!-- Main Contents Area -->
+      <div class="flex-grow flex flex-col min-w-0 overflow-hidden">
+        <!-- Subfolder Breadcrumb Tabs for mobile -->
+        <div
+          class="md:hidden flex items-center gap-1.5 px-3 py-2 border-b overflow-x-auto shrink-0 text-xs"
+          :class="store.theme === 'light' ? 'bg-zinc-100 border-black/10' : 'bg-[#181820] border-white/10'"
         >
-          Todos ({{ repos.length }})
-        </button>
-        <button
-          class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0 transition"
-          :class="activeFolderName === 'Destaques' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200'"
-          @click="handleSidebarShortcut('favorites')"
-        >
-          Destaques
-        </button>
-        <button
-          class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0 transition"
-          :class="activeFolderName === 'Trabalho' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200'"
-          @click="handleSidebarShortcut('folder', 'Trabalho')"
-        >
-          Trabalho
-        </button>
-        <button
-          class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0 transition"
-          :class="activeFolderName === 'Estudos' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200'"
-          @click="handleSidebarShortcut('folder', 'Estudos')"
-        >
-          Estudos
-        </button>
-      </div>
+          <button
+            @click="selectSidebar('all')"
+            class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0"
+            :class="activeSidebarItem === 'all' ? 'bg-sky-500 text-white' : 'text-zinc-400'"
+          >
+            Todos ({{ repos.length }})
+          </button>
+          <button
+            @click="selectSidebar('favorites')"
+            class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0"
+            :class="activeSidebarItem === 'favorites' ? 'bg-sky-500 text-white' : 'text-zinc-400'"
+          >
+            Destaques
+          </button>
+          <button
+            @click="selectSidebar('work')"
+            class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0"
+            :class="activeSidebarItem === 'work' ? 'bg-sky-500 text-white' : 'text-zinc-400'"
+          >
+            Trabalho
+          </button>
+          <button
+            @click="selectSidebar('studies')"
+            class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0"
+            :class="activeSidebarItem === 'studies' ? 'bg-sky-500 text-white' : 'text-zinc-400'"
+          >
+            Estudos
+          </button>
+          <button
+            @click="selectSidebar('media')"
+            class="px-2.5 py-1 rounded-md text-[11px] font-medium shrink-0"
+            :class="activeSidebarItem === 'media' ? 'bg-sky-500 text-white' : 'text-zinc-400'"
+          >
+            Fotos ({{ mediaFiles.length }})
+          </button>
+        </div>
 
-      <!-- Main Directory Contents -->
-      <div class="flex-grow flex overflow-hidden relative">
-        
-        <!-- Files Grid/List Area -->
-        <div class="flex-grow flex flex-col overflow-hidden">
-          
-          <!-- Chips Area (Language Filter) -->
-          <div v-if="currentViewLanguages.length > 1" class="px-4 py-2 border-b border-white/[0.06] flex gap-1.5 overflow-x-auto select-none scrollbar-none shrink-0 bg-black/20">
-            <button
-              class="px-2 py-0.5 rounded-md border text-[10px] font-medium transition cursor-pointer"
-              :class="!selectedLanguageFilter ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-zinc-400 border-white/5 hover:bg-white/[0.04]'"
-              @click="selectedLanguageFilter = null"
-            >
-              Todas
-            </button>
-            <button
-              v-for="lang in currentViewLanguages"
-              :key="'chip-' + lang"
-              class="px-2 py-0.5 rounded-md border text-[10px] font-medium transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
-              :class="selectedLanguageFilter === lang ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-zinc-400 border-white/5 hover:bg-white/[0.04]'"
-              @click="selectedLanguageFilter = selectedLanguageFilter === lang ? null : lang"
-            >
-              <span class="w-1.5 h-1.5 rounded-full" :class="getLanguageDotColor(lang)"></span>
-              {{ lang }}
-            </button>
+        <!-- Scrollable Files View -->
+        <div class="flex-grow overflow-y-auto p-4 sm:p-6 select-none relative">
+          <!-- Loading -->
+          <div v-if="loading && repos.length === 0" class="flex flex-col items-center justify-center py-20 gap-3">
+            <RefreshCw class="w-8 h-8 animate-spin text-sky-500" />
+            <span class="text-xs text-zinc-500">Carregando itens do Finder...</span>
           </div>
 
-          <!-- List Scroll Container -->
-          <div class="flex-grow overflow-y-auto p-4 select-none relative">
-            
-            <!-- Loading Indicator -->
-            <div v-if="loading && repos.length === 0" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0d0e12]/80 backdrop-blur-xs z-30">
-              <RefreshCw class="w-8 h-8 animate-spin text-zinc-400" />
-              <span class="text-xs text-zinc-400 font-medium">Carregando repositórios...</span>
-            </div>
-
-            <!-- Error State -->
-            <div v-if="error && repos.length === 0" class="flex flex-col items-center justify-center py-16 gap-3 text-zinc-400">
-              <span class="text-xs font-semibold">Não foi possível carregar os repositórios</span>
-              <button @click="fetchRepos()" class="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg text-xs font-medium cursor-pointer">
-                Tentar novamente
-              </button>
-            </div>
-
-            <template v-if="repos.length > 0">
-              
-              <!-- Special Folders Row (Root only) -->
-              <div v-if="currentPath.length === 1 && !selectedLanguageFilter && !selectedYearFilter && !searchQuery" class="mb-5 select-none">
-                <p class="text-zinc-500 font-semibold uppercase tracking-wider text-[10px] mb-2.5">Pastas</p>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <!-- Destaques -->
-                  <div
-                    class="flex items-center gap-3 p-3 rounded-xl border border-white/[0.07] bg-zinc-900/30 hover:bg-zinc-900/60 transition cursor-pointer select-none"
-                    :class="activeDragOverFolder === 'Destaques' ? 'border-amber-400/50 bg-amber-500/5 border-dashed' : ''"
-                    @click="navigateToFolder('Destaques')"
-                    @dragover.prevent="handleDragOver($event, 'Destaques')"
-                    @dragleave="handleDragLeave($event, 'Destaques')"
-                    @drop="handleDrop($event, 'Destaques')"
-                  >
-                    <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <Star class="w-4 h-4 text-amber-400 fill-amber-400/20" />
-                    </div>
-                    <div class="min-w-0">
-                      <span class="block font-semibold text-zinc-100 text-xs">Destaques</span>
-                      <span class="block text-[10px] text-zinc-500 font-mono mt-0.5">
-                        {{ repos.filter(r => r.is_favorite).length }} itens
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Trabalho -->
-                  <div
-                    class="flex items-center gap-3 p-3 rounded-xl border border-white/[0.07] bg-zinc-900/30 hover:bg-zinc-900/60 transition cursor-pointer select-none"
-                    :class="activeDragOverFolder === 'Trabalho' ? 'border-blue-400/50 bg-blue-500/5 border-dashed' : ''"
-                    @click="navigateToFolder('Trabalho')"
-                    @dragover.prevent="handleDragOver($event, 'Trabalho')"
-                    @dragleave="handleDragLeave($event, 'Trabalho')"
-                    @drop="handleDrop($event, 'Trabalho')"
-                  >
-                    <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                      <Briefcase class="w-4 h-4 text-blue-400" />
-                    </div>
-                    <div class="min-w-0">
-                      <span class="block font-semibold text-zinc-100 text-xs">Trabalho</span>
-                      <span class="block text-[10px] text-zinc-500 font-mono mt-0.5">
-                        {{ repos.filter(r => r.folder === 'Trabalho').length }} itens
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Estudos -->
-                  <div
-                    class="flex items-center gap-3 p-3 rounded-xl border border-white/[0.07] bg-zinc-900/30 hover:bg-zinc-900/60 transition cursor-pointer select-none"
-                    :class="activeDragOverFolder === 'Estudos' ? 'border-emerald-400/50 bg-emerald-500/5 border-dashed' : ''"
-                    @click="navigateToFolder('Estudos')"
-                    @dragover.prevent="handleDragOver($event, 'Estudos')"
-                    @dragleave="handleDragLeave($event, 'Estudos')"
-                    @drop="handleDrop($event, 'Estudos')"
-                  >
-                    <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <BookOpen class="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div class="min-w-0">
-                      <span class="block font-semibold text-zinc-100 text-xs">Estudos</span>
-                      <span class="block text-[10px] text-zinc-500 font-mono mt-0.5">
-                        {{ repos.filter(r => r.folder === 'Estudos').length }} itens
-                      </span>
-                    </div>
-                  </div>
+          <!-- ICON (GRID) VIEW: Authentic macOS Aqua Blue Folders -->
+          <div
+            v-else-if="viewMode === 'grid'"
+            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6"
+          >
+            <!-- Subfolder Shortcuts if in root -->
+            <template v-if="activeSidebarItem === 'all' && !searchQuery">
+              <!-- Trabalho Folder -->
+              <div
+                @click="openFolder('Trabalho')"
+                class="flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer group transition hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <!-- macOS Blue Aqua Folder -->
+                <div class="relative w-16 h-14 flex items-center justify-center transition-transform group-hover:scale-105">
+                  <svg viewBox="0 0 64 52" class="w-full h-full drop-shadow-md">
+                    <defs>
+                      <linearGradient id="macFolderGrad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#64b5f6" />
+                        <stop offset="100%" stop-color="#1976d2" />
+                      </linearGradient>
+                      <linearGradient id="macFolderBack1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#42a5f5" />
+                        <stop offset="100%" stop-color="#1565c0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M4 8C4 5.79 5.79 4 8 4H22C24.5 4 26.5 6 28 8L31 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V8Z" fill="url(#macFolderBack1)" />
+                    <rect x="8" y="10" width="48" height="12" rx="2" fill="#ffffff" opacity="0.3" />
+                    <path d="M4 16C4 13.79 5.79 12 8 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V16Z" fill="url(#macFolderGrad1)" />
+                  </svg>
                 </div>
-
-                <div class="border-b border-white/[0.06] my-4"></div>
+                <span class="text-xs font-medium text-center truncate max-w-full px-1.5 rounded group-hover:bg-sky-500 group-hover:text-white transition-colors">
+                  Trabalho
+                </span>
               </div>
 
-              <!-- Repositórios Header -->
-              <p v-if="currentPath.length === 1 && !selectedLanguageFilter && !selectedYearFilter && !searchQuery" class="text-zinc-500 font-semibold uppercase tracking-wider text-[10px] mb-2.5">Repositórios</p>
-              
-              <!-- GRID VIEW -->
-              <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-8 select-none">
-                <div
-                  v-for="repo in filteredRepos"
-                  :key="repo.id"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, repo)"
-                  @dragend="draggedRepo = null"
-                  @click="selectedRepo = repo"
-                  class="flex flex-col border border-white/[0.08] bg-zinc-900/35 hover:bg-zinc-900/70 rounded-xl p-3.5 cursor-pointer transition select-none group relative"
-                  :class="selectedRepo?.id === repo.id ? 'border-sky-500/60 bg-sky-950/20' : ''"
-                >
-                  <!-- Star toggle inside card -->
-                  <button
-                    @click.stop="toggleFavorite(repo)"
-                    class="absolute top-3 right-3 text-zinc-500 hover:text-amber-400 transition p-1 cursor-pointer"
-                    :class="repo.is_favorite ? 'text-amber-400 fill-amber-400/20' : 'opacity-0 group-hover:opacity-100'"
-                    title="Favoritar"
-                  >
-                    <Star class="w-3.5 h-3.5" />
-                  </button>
-
-                  <!-- Card Title -->
-                  <div class="flex items-center gap-2 mb-1.5 pr-6 min-w-0">
-                    <Folder class="w-4 h-4 text-sky-400 fill-sky-400/10 shrink-0" />
-                    <h4 class="font-semibold text-zinc-100 text-xs truncate">{{ repo.name }}</h4>
-                  </div>
-
-                  <!-- Description -->
-                  <p class="text-zinc-400 text-[11px] leading-relaxed mb-3 line-clamp-2 min-h-8">
-                    {{ repo.description || 'Sem descrição.' }}
-                  </p>
-
-                  <!-- Footer Row -->
-                  <div class="mt-auto pt-2 border-t border-white/[0.05] flex items-center justify-between text-[10px] text-zinc-500">
-                    <div class="flex items-center gap-2.5">
-                      <span class="flex items-center gap-1.5 font-medium text-zinc-400">
-                        <span class="w-1.5 h-1.5 rounded-full" :class="getLanguageDotColor(repo.language)"></span>
-                        {{ repo.language || 'Outro' }}
-                      </span>
-                      <span class="flex items-center gap-0.5 text-zinc-400 font-mono">
-                        <Star class="w-2.5 h-2.5 text-amber-400 fill-amber-400/20" />
-                        {{ repo.stars }}
-                      </span>
-                    </div>
-
-                    <span class="font-mono text-[9px] text-zinc-500">
-                      {{ timeAgo(repo.updated_at) }}
-                    </span>
-                  </div>
-
+              <!-- Estudos Folder -->
+              <div
+                @click="openFolder('Estudos')"
+                class="flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer group transition hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <div class="relative w-16 h-14 flex items-center justify-center transition-transform group-hover:scale-105">
+                  <svg viewBox="0 0 64 52" class="w-full h-full drop-shadow-md">
+                    <defs>
+                      <linearGradient id="macFolderGrad2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#64b5f6" />
+                        <stop offset="100%" stop-color="#1976d2" />
+                      </linearGradient>
+                      <linearGradient id="macFolderBack2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#42a5f5" />
+                        <stop offset="100%" stop-color="#1565c0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M4 8C4 5.79 5.79 4 8 4H22C24.5 4 26.5 6 28 8L31 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V8Z" fill="url(#macFolderBack2)" />
+                    <rect x="8" y="10" width="48" height="12" rx="2" fill="#ffffff" opacity="0.3" />
+                    <path d="M4 16C4 13.79 5.79 12 8 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V16Z" fill="url(#macFolderGrad2)" />
+                  </svg>
                 </div>
+                <span class="text-xs font-medium text-center truncate max-w-full px-1.5 rounded group-hover:bg-sky-500 group-hover:text-white transition-colors">
+                  Estudos & TCC
+                </span>
               </div>
 
-              <!-- LIST VIEW -->
-              <div v-else class="flex flex-col border border-white/[0.08] bg-zinc-900/20 rounded-xl overflow-hidden mb-8 select-none">
-                <table class="w-full text-left text-[11px] border-collapse">
-                  <thead>
-                    <tr class="border-b border-white/[0.08] bg-zinc-900/50 text-zinc-400 text-[10px] font-semibold uppercase tracking-wider">
-                      <th class="py-2 px-3">Nome</th>
-                      <th class="py-2 px-3 hidden sm:table-cell">Descrição</th>
-                      <th class="py-2 px-3">Linguagem</th>
-                      <th class="py-2 px-3 text-center">⭐</th>
-                      <th class="py-2 px-3 text-right">Atualizado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="repo in filteredRepos"
-                      :key="repo.id"
-                      draggable="true"
-                      @dragstart="handleDragStart($event, repo)"
-                      @dragend="draggedRepo = null"
-                      @click="selectedRepo = repo"
-                      class="border-b border-white/[0.04] hover:bg-white/[0.04] cursor-pointer transition select-none group"
-                      :class="selectedRepo?.id === repo.id ? 'bg-sky-950/20' : ''"
-                    >
-                      <td class="py-2.5 px-3 font-medium text-zinc-200">
-                        <div class="flex items-center gap-2 max-w-[200px] truncate">
-                          <Folder class="w-3.5 h-3.5 text-sky-400 fill-sky-400/10 shrink-0" />
-                          <span class="truncate">{{ repo.name }}</span>
-                          <Star v-if="repo.is_favorite" class="w-3 h-3 text-amber-400 fill-amber-400/20 shrink-0" />
-                        </div>
-                      </td>
-
-                      <td class="py-2.5 px-3 text-zinc-400 hidden sm:table-cell max-w-xs truncate">
-                        {{ repo.description || 'Sem descrição.' }}
-                      </td>
-
-                      <td class="py-2.5 px-3 text-zinc-400">
-                        <span class="flex items-center gap-1.5">
-                          <span class="w-1.5 h-1.5 rounded-full" :class="getLanguageDotColor(repo.language)"></span>
-                          {{ repo.language || 'Outro' }}
-                        </span>
-                      </td>
-
-                      <td class="py-2.5 px-3 font-mono text-center text-zinc-300">
-                        {{ repo.stars }}
-                      </td>
-
-                      <td class="py-2.5 px-3 text-right text-zinc-500 font-mono">
-                        {{ timeAgo(repo.updated_at) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <!-- Fotos & Eventos Folder -->
+              <div
+                @click="openFolder('Fotos')"
+                class="flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer group transition hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <div class="relative w-16 h-14 flex items-center justify-center transition-transform group-hover:scale-105">
+                  <svg viewBox="0 0 64 52" class="w-full h-full drop-shadow-md">
+                    <defs>
+                      <linearGradient id="macFolderGradPhotos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ab47bc" />
+                        <stop offset="100%" stop-color="#7b1fa2" />
+                      </linearGradient>
+                      <linearGradient id="macFolderBackPhotos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ba68c8" />
+                        <stop offset="100%" stop-color="#6a1b9a" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M4 8C4 5.79 5.79 4 8 4H22C24.5 4 26.5 6 28 8L31 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V8Z" fill="url(#macFolderBackPhotos)" />
+                    <rect x="8" y="10" width="48" height="12" rx="2" fill="#ffffff" opacity="0.3" />
+                    <path d="M4 16C4 13.79 5.79 12 8 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V16Z" fill="url(#macFolderGradPhotos)" />
+                  </svg>
+                  <ImageIcon class="w-4 h-4 text-white/90 absolute bottom-3 drop-shadow-xs" />
+                </div>
+                <span class="text-xs font-medium text-center truncate max-w-full px-1.5 rounded group-hover:bg-sky-500 group-hover:text-white transition-colors">
+                  Fotos & Eventos
+                </span>
               </div>
-
-              <!-- Empty state -->
-              <div v-if="filteredRepos.length === 0" class="py-16 flex flex-col items-center justify-center text-zinc-500 gap-1.5">
-                <Folder class="w-8 h-8 stroke-[1] text-zinc-600" />
-                <span class="font-medium text-xs text-zinc-400">Nenhum repositório encontrado</span>
-              </div>
-
             </template>
 
+            <!-- MEDIA FILES (Fotos & Eventos) -->
+            <template v-if="activeSidebarItem === 'media'">
+              <div
+                v-for="media in mediaFiles"
+                :key="media.id"
+                @click="selectedMedia = media; selectedRepo = null"
+                class="flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer transition select-none group w-full text-center"
+                :class="selectedMedia?.id === media.id
+                  ? (store.theme === 'light' ? 'bg-sky-50 border border-sky-300 shadow-2xs' : 'bg-sky-500/15 border border-sky-400/30 shadow-2xs')
+                  : 'border border-transparent hover:bg-black/5 dark:hover:bg-white/5'"
+              >
+                <!-- Image Thumbnail with macOS Photo Frame -->
+                <div class="relative w-16 h-14 rounded-lg overflow-hidden border shadow-sm transition-transform group-hover:scale-105 bg-black/10" :class="store.theme === 'light' ? 'border-zinc-200' : 'border-white/10'">
+                  <img :src="media.src" class="w-full h-full object-cover object-top" :alt="media.name" />
+                  <span class="absolute bottom-0.5 right-0.5 bg-black/70 text-[8px] font-mono text-white px-1 py-0.2 rounded">PNG</span>
+                </div>
+                <span
+                  class="text-xs font-medium text-center line-clamp-2 break-all px-1.5 py-0.5 rounded leading-tight transition-colors"
+                  :class="selectedMedia?.id === media.id
+                    ? 'bg-sky-500 text-white font-semibold'
+                    : (store.theme === 'light' ? 'text-zinc-800' : 'text-zinc-200')"
+                >
+                  {{ media.name }}
+                </span>
+              </div>
+            </template>
+
+            <!-- Repositories as macOS Project Folders -->
+            <template v-else>
+              <div
+                v-for="repo in filteredRepos"
+                :key="repo.id"
+                @click="selectedRepo = repo; selectedMedia = null"
+                class="flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer transition select-none group w-full text-center"
+                :class="selectedRepo?.id === repo.id
+                  ? (store.theme === 'light' ? 'bg-sky-50 border border-sky-300 shadow-2xs' : 'bg-sky-500/15 border border-sky-400/30 shadow-2xs')
+                  : 'border border-transparent hover:bg-black/5 dark:hover:bg-white/5'"
+              >
+                <!-- macOS Blue Aqua Folder with Code Badge -->
+                <div class="relative w-16 h-14 flex items-center justify-center transition-transform group-hover:scale-105">
+                  <svg viewBox="0 0 64 52" class="w-full h-full drop-shadow-md">
+                    <defs>
+                      <linearGradient id="macFolderGradRepo" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#72c5ff" />
+                        <stop offset="100%" stop-color="#2185d0" />
+                      </linearGradient>
+                      <linearGradient id="macFolderBackRepo" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#4ea8f6" />
+                        <stop offset="100%" stop-color="#166dbb" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M4 8C4 5.79 5.79 4 8 4H22C24.5 4 26.5 6 28 8L31 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V8Z" fill="url(#macFolderBackRepo)" />
+                    <rect x="8" y="10" width="48" height="12" rx="2" fill="#ffffff" opacity="0.3" />
+                    <path d="M4 16C4 13.79 5.79 12 8 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V16Z" fill="url(#macFolderGradRepo)" />
+                  </svg>
+
+                  <!-- Language dot badge on folder -->
+                  <span
+                    class="absolute bottom-2.5 right-2 w-2.5 h-2.5 rounded-full ring-2 ring-white/80 shadow-xs"
+                    :class="getLanguageDotColor(repo.language)"
+                    :title="repo.language || 'Outro'"
+                  ></span>
+
+                  <!-- Star indicator -->
+                  <Star
+                    v-if="repo.is_favorite"
+                    class="absolute top-4 left-3 w-3 h-3 text-amber-300 fill-amber-300 drop-shadow-xs"
+                  />
+                </div>
+
+                <!-- Folder Title underneath -->
+                <span
+                  class="text-xs font-medium text-center line-clamp-2 break-all px-1.5 py-0.5 rounded leading-tight transition-colors"
+                  :class="selectedRepo?.id === repo.id
+                    ? 'bg-sky-500 text-white font-semibold'
+                    : (store.theme === 'light' ? 'text-zinc-800' : 'text-zinc-200')"
+                >
+                  {{ repo.name }}
+                </span>
+              </div>
+            </template>
+          </div>
+
+          <!-- LIST VIEW: macOS Finder Standard Column Table -->
+          <div v-else class="flex flex-col border rounded-xl overflow-hidden shadow-2xs" :class="store.theme === 'light' ? 'border-black/10 bg-white' : 'border-white/10 bg-[#25252d]'">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr
+                  class="border-b text-[10px] uppercase tracking-wider font-semibold"
+                  :class="store.theme === 'light' ? 'bg-[#f5f5f7] border-black/10 text-zinc-500' : 'bg-[#1e1e24] border-white/10 text-zinc-400'"
+                >
+                  <th class="py-2 px-3">Nome</th>
+                  <th class="py-2 px-3 hidden sm:table-cell">Linguagem</th>
+                  <th class="py-2 px-3 text-right">Modificado</th>
+                  <th class="py-2 px-3 text-center">⭐</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="repo in filteredRepos"
+                  :key="repo.id"
+                  @click="selectedRepo = repo"
+                  class="border-b transition cursor-pointer"
+                  :class="selectedRepo?.id === repo.id
+                    ? (store.theme === 'light' ? 'bg-sky-100 text-sky-950 font-medium' : 'bg-sky-900/40 text-white font-medium')
+                    : (store.theme === 'light' ? 'border-black/5 hover:bg-black/5' : 'border-white/5 hover:bg-white/5')"
+                >
+                  <td class="py-2 px-3">
+                    <div class="flex items-center gap-2 max-w-[240px] truncate">
+                      <FolderIcon class="w-4 h-4 text-sky-500 fill-sky-500/20 shrink-0" />
+                      <span class="truncate">{{ repo.name }}</span>
+                    </div>
+                  </td>
+                  <td class="py-2 px-3 hidden sm:table-cell text-zinc-500">
+                    <span class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full" :class="getLanguageDotColor(repo.language)"></span>
+                      {{ repo.language || 'Outro' }}
+                    </span>
+                  </td>
+                  <td class="py-2 px-3 text-right text-zinc-400 font-mono text-[11px]">
+                    {{ timeAgo(repo.updated_at) }}
+                  </td>
+                  <td class="py-2 px-3 text-center font-mono">
+                    <span v-if="repo.stars > 0" class="text-amber-500 flex items-center justify-center gap-0.5">
+                      <Star class="w-3 h-3 fill-amber-500" /> {{ repo.stars }}
+                    </span>
+                    <span v-else class="text-zinc-400">-</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Detail Sidebar Panel (macOS Inspector Style & Mobile Responsive Fullscreen Overlay) -->
-        <Transition name="drawer-slide">
-          <div 
-            v-if="selectedRepo" 
-            class="fixed inset-0 z-50 md:static md:w-[280px] border-l border-white/[0.08] bg-[#0c0d11]/95 md:bg-[#0a0b0e]/80 backdrop-blur-xl p-4.5 flex flex-col gap-4 shrink-0 overflow-y-auto select-none"
-          >
-            <!-- Drawer Header -->
-            <div class="flex items-start justify-between border-b border-white/[0.08] pb-3">
-              <div class="min-w-0 pr-2">
-                <div class="flex items-center gap-1.5 mb-1">
-                  <span class="text-[9px] font-semibold bg-white/[0.06] px-1.5 py-0.5 rounded text-zinc-300">
-                    {{ selectedRepo.language || 'Outro' }}
-                  </span>
-                  <span v-if="selectedRepo.is_favorite" class="text-[9px] font-semibold bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded text-amber-400 flex items-center gap-0.5">
-                    <Star class="w-2.5 h-2.5 fill-amber-400/20" /> Destaque
-                  </span>
-                </div>
-                <h3 class="font-bold text-zinc-100 text-sm break-words select-text">{{ selectedRepo.name }}</h3>
+        <!-- macOS Finder Path & Status Bar (Bottom) -->
+        <div
+          class="h-7 border-t flex items-center justify-between px-3 text-[10px] font-mono shrink-0 select-none transition-colors duration-300"
+          :class="store.theme === 'light' ? 'bg-[#f5f5f7] border-black/10 text-zinc-500' : 'bg-[#181820] border-white/10 text-zinc-400'"
+        >
+          <!-- Path Breadcrumbs -->
+          <div class="flex items-center gap-1 truncate">
+            <HardDrive class="w-3 h-3 text-zinc-400" />
+            <span>Macintosh HD</span>
+            <ChevronRight class="w-2.5 h-2.5 text-zinc-400" />
+            <span>Users</span>
+            <ChevronRight class="w-2.5 h-2.5 text-zinc-400" />
+            <template v-for="(p, i) in currentPath" :key="i">
+              <span :class="i === currentPath.length - 1 ? 'font-semibold text-zinc-700 dark:text-zinc-200' : ''">{{ p }}</span>
+              <ChevronRight v-if="i < currentPath.length - 1" class="w-2.5 h-2.5 text-zinc-400" />
+            </template>
+          </div>
+
+          <!-- Item count -->
+          <span class="shrink-0 ml-2">
+            {{ filteredRepos.length }} itens
+          </span>
+        </div>
+      </div>
+
+      <!-- Mobile Backdrop (allows tapping outside to close on phones) -->
+      <div
+        v-if="selectedRepo || selectedMedia"
+        @click="closeInspector"
+        class="absolute inset-0 bg-black/50 backdrop-blur-xs z-40 md:hidden transition-opacity"
+      ></div>
+
+      <!-- macOS Quick Look / Inspector Panel -->
+      <Transition name="drawer-slide">
+        <div
+          v-if="selectedRepo || selectedMedia"
+          class="absolute inset-y-0 right-0 z-50 md:static w-full max-w-xs sm:w-80 border-l p-4 flex flex-col gap-4 overflow-y-auto shrink-0 transition-colors duration-300 shadow-2xl"
+          :class="store.theme === 'light'
+            ? 'bg-[#fafafa] border-black/10 text-zinc-800'
+            : 'bg-[#21212a] border-white/10 text-zinc-200'"
+        >
+          <!-- Prominent Mobile Back Bar (Solves mobile trap!) -->
+          <div class="flex items-center justify-between pb-2 border-b md:hidden" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/10'">
+            <button
+              @click="closeInspector"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500 text-white font-semibold text-xs active:scale-95 transition cursor-pointer shadow-xs"
+            >
+              <ChevronLeft class="w-4 h-4" />
+              <span>Voltar ao Finder</span>
+            </button>
+            <button
+              @click="closeInspector"
+              class="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- DESKTOP Header -->
+          <div class="hidden md:flex items-start justify-between border-b pb-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/10'">
+            <div class="min-w-0 pr-2">
+              <span class="text-[9px] font-semibold uppercase tracking-wider text-sky-500 block mb-0.5">Informações</span>
+              <h3 class="font-bold text-sm truncate">{{ selectedRepo ? selectedRepo.name : selectedMedia?.name }}</h3>
+            </div>
+            <button
+              @click="closeInspector"
+              class="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+            >
+              <X class="w-4 h-4 text-zinc-400" />
+            </button>
+          </div>
+
+          <!-- CASE 1: MEDIA PREVIEW -->
+          <template v-if="selectedMedia">
+            <div class="w-full aspect-[4/3] rounded-xl overflow-hidden border shadow-sm bg-black/10" :class="store.theme === 'light' ? 'border-zinc-200' : 'border-white/10'">
+              <img :src="selectedMedia.src" class="w-full h-full object-cover object-top" :alt="selectedMedia.name" />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <h4 class="font-bold text-sm" :class="store.theme === 'light' ? 'text-zinc-900' : 'text-white'">{{ selectedMedia.name }}</h4>
+              <p class="text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
+                {{ selectedMedia.description }}
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-2 text-[11px] border-t pt-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/10'">
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Local:</span>
+                <span class="font-medium">{{ selectedMedia.location }}</span>
               </div>
-              <button
-                @click="selectedRepo = null"
-                class="p-1.5 rounded-lg hover:bg-white/[0.08] text-zinc-400 hover:text-white cursor-pointer transition shrink-0"
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Ano:</span>
+                <span class="font-medium font-mono">{{ selectedMedia.date }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Resolução:</span>
+                <span class="font-medium font-mono text-[10px]">{{ selectedMedia.resolution }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Tamanho:</span>
+                <span class="font-medium font-mono text-[10px]">{{ selectedMedia.size }}</span>
+              </div>
+            </div>
+
+            <div class="mt-auto pt-3 border-t flex flex-col gap-2" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/10'">
+              <a
+                :href="selectedMedia.src"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="w-full py-2 px-3 rounded-lg text-xs font-semibold text-white bg-sky-500 hover:bg-sky-600 transition flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <X class="w-4 h-4" />
+                <ExternalLink class="w-3.5 h-3.5" />
+                <span>Visualizar Imagem Completa</span>
+              </a>
+              <button
+                @click="closeInspector"
+                class="w-full py-2 px-3 rounded-lg border text-xs font-medium transition cursor-pointer md:hidden"
+                :class="store.theme === 'light' ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-800' : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-200'"
+              >
+                Fechar Painel
               </button>
+            </div>
+          </template>
+
+          <!-- CASE 2: REPOSITORY PREVIEW -->
+          <template v-else-if="selectedRepo">
+            <!-- Big Preview Icon -->
+            <div class="flex flex-col items-center justify-center py-2">
+              <svg viewBox="0 0 64 52" class="w-20 h-16 drop-shadow-lg">
+                <defs>
+                  <linearGradient id="macInspectGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#72c5ff" />
+                    <stop offset="100%" stop-color="#2185d0" />
+                  </linearGradient>
+                  <linearGradient id="macInspectBack" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4ea8f6" />
+                    <stop offset="100%" stop-color="#166dbb" />
+                  </linearGradient>
+                </defs>
+                <path d="M4 8C4 5.79 5.79 4 8 4H22C24.5 4 26.5 6 28 8L31 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V8Z" fill="url(#macInspectBack)" />
+                <rect x="8" y="10" width="48" height="12" rx="2" fill="#ffffff" opacity="0.3" />
+                <path d="M4 16C4 13.79 5.79 12 8 12H56C58.21 12 60 13.79 60 16V44C60 46.21 58.21 48 56 48H8C5.79 48 4 46.21 4 44V16Z" fill="url(#macInspectGrad)" />
+              </svg>
+              <span class="text-xs font-semibold mt-2">{{ selectedRepo.name }}</span>
+              <span class="text-[10px] text-zinc-400">Repositório Git · {{ selectedRepo.language || 'Geral' }}</span>
             </div>
 
             <!-- Description -->
-            <div class="flex flex-col gap-1">
-              <span class="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Descrição</span>
-              <p class="text-zinc-300 text-xs leading-relaxed select-text">
+            <div class="flex flex-col gap-1 text-xs">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Descrição</span>
+              <p class="leading-relaxed text-zinc-600 dark:text-zinc-300 text-[11px] select-text">
                 {{ selectedRepo.description || 'Nenhuma descrição fornecida.' }}
               </p>
             </div>
 
-            <!-- Stats -->
-            <div class="grid grid-cols-2 gap-2">
-              <div class="bg-zinc-900/60 border border-white/[0.06] rounded-lg p-2.5 flex flex-col gap-0.5">
-                <span class="text-[8px] font-semibold text-zinc-500 uppercase tracking-wider">Estrelas</span>
-                <span class="text-xs font-mono font-semibold text-zinc-200 flex items-center gap-1">
-                  <Star class="w-3 h-3 text-amber-400 fill-amber-400/20" /> {{ selectedRepo.stars }}
-                </span>
-              </div>
-              <div class="bg-zinc-900/60 border border-white/[0.06] rounded-lg p-2.5 flex flex-col gap-0.5">
-                <span class="text-[8px] font-semibold text-zinc-500 uppercase tracking-wider">Forks</span>
-                <span class="text-xs font-mono font-semibold text-zinc-200 flex items-center gap-1">
-                  <FileCode2 class="w-3 h-3 text-sky-400" /> {{ selectedRepo.forks }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Language Breakdown Bar -->
-            <div class="flex flex-col gap-1.5">
-              <span class="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Linguagens</span>
-              <div class="h-1.5 rounded-full overflow-hidden bg-white/5 flex">
-                <div
-                  v-for="prop in getMockLanguagesProportions(selectedRepo.language)"
-                  :key="prop.name"
-                  :style="{ width: prop.percentage + '%', backgroundColor: prop.color }"
-                  class="h-full"
-                ></div>
-              </div>
-              <div class="flex flex-wrap gap-x-3 gap-y-1 text-[9px] mt-0.5">
-                <div
-                  v-for="prop in getMockLanguagesProportions(selectedRepo.language)"
-                  :key="'legend-' + prop.name"
-                  class="flex items-center gap-1 text-zinc-400"
-                >
-                  <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: prop.color }"></span>
-                  <span>{{ prop.name }} <span class="text-zinc-500 font-mono">({{ prop.percentage }}%)</span></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Topics -->
-            <div v-if="selectedRepo.topics && selectedRepo.topics.length" class="flex flex-col gap-1.5">
-              <span class="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Tópicos</span>
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="topic in selectedRepo.topics"
-                  :key="topic"
-                  class="bg-white/[0.06] text-zinc-300 border border-white/[0.06] px-2 py-0.5 rounded-md text-[9px] font-medium"
-                >
-                  {{ topic }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Timestamps -->
-            <div class="flex flex-col gap-1 text-[10px] text-zinc-400 bg-zinc-900/40 border border-white/[0.06] rounded-lg p-2.5">
+            <!-- Info List -->
+            <div class="flex flex-col gap-2 text-[11px] border-t pt-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/10'">
               <div class="flex justify-between">
-                <span>Criado:</span>
-                <span class="text-zinc-300 font-medium">{{ formatDate(selectedRepo.created_at) }}</span>
+                <span class="text-zinc-400">Linguagem:</span>
+                <span class="font-medium">{{ selectedRepo.language || 'Outro' }}</span>
               </div>
               <div class="flex justify-between">
-                <span>Atualizado:</span>
-                <span class="text-zinc-300 font-medium">{{ formatDate(selectedRepo.updated_at) }}</span>
+                <span class="text-zinc-400">Estrelas:</span>
+                <span class="font-medium font-mono">{{ selectedRepo.stars }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Atualizado:</span>
+                <span class="font-medium font-mono text-[10px]">{{ formatDate(selectedRepo.updated_at) }}</span>
               </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex flex-col gap-2 mt-auto pt-3 border-t border-white/[0.08] shrink-0">
-              <div class="flex gap-2">
-                <button
-                  @click="toggleFavorite(selectedRepo)"
-                  class="flex-1 py-1.5 px-2.5 border rounded-lg cursor-pointer transition text-[11px] font-semibold flex items-center justify-center gap-1.5"
-                  :class="selectedRepo.is_favorite ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'border-white/10 text-zinc-300 hover:bg-white/[0.05]'"
-                >
-                  <Star class="w-3.5 h-3.5" :class="selectedRepo.is_favorite ? 'fill-amber-400/20' : ''" />
-                  <span>{{ selectedRepo.is_favorite ? 'Favoritado' : 'Favoritar' }}</span>
-                </button>
-
-                <select
-                  :value="selectedRepo.folder"
-                  @change="moveRepoToFolder(selectedRepo, ($event.target as HTMLSelectElement).value as any || null)"
-                  class="bg-zinc-900 border border-white/10 text-zinc-300 text-[11px] font-medium rounded-lg px-2 py-1.5 outline-none cursor-pointer"
-                >
-                  <option :value="null">Pasta: Raiz</option>
-                  <option value="Trabalho">Trabalho</option>
-                  <option value="Estudos">Estudos</option>
-                </select>
-              </div>
-
-              <a
-                v-if="selectedRepo.homepage"
-                :href="selectedRepo.homepage"
-                target="_blank"
-                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-1.5 rounded-lg text-center flex items-center justify-center gap-1.5 transition text-[11px] shadow-sm"
+            <div class="flex flex-col gap-2 mt-auto pt-3 border-t" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/10'">
+              <button
+                @click="toggleFavorite(selectedRepo)"
+                class="w-full py-1.5 px-3 rounded-lg border text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5"
+                :class="selectedRepo.is_favorite
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-500'
+                  : (store.theme === 'light' ? 'bg-white border-zinc-300 hover:bg-zinc-50' : 'bg-white/5 border-white/10 hover:bg-white/10')"
               >
-                <ExternalLink class="w-3.5 h-3.5" />
-                <span>Abrir Demo</span>
-              </a>
+                <Star class="w-3.5 h-3.5" :class="selectedRepo.is_favorite ? 'fill-amber-500' : ''" />
+                <span>{{ selectedRepo.is_favorite ? 'Destaque Marcado' : 'Marcar Destaque' }}</span>
+              </button>
+
+              <select
+                :value="selectedRepo.folder"
+                @change="moveRepoToFolder(selectedRepo, ($event.target as HTMLSelectElement).value as any || null)"
+                class="w-full text-xs font-medium rounded-lg px-2.5 py-1.5 border outline-none cursor-pointer"
+                :class="store.theme === 'light' ? 'bg-white border-zinc-300 text-zinc-800' : 'bg-[#181820] border-white/10 text-zinc-300'"
+              >
+                <option :value="null">Mover para: Raiz</option>
+                <option value="Trabalho">Mover para: Trabalho</option>
+                <option value="Estudos">Mover para: Estudos & TCC</option>
+              </select>
 
               <a
                 :href="selectedRepo.url"
                 target="_blank"
-                class="w-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-zinc-200 font-medium py-1.5 rounded-lg text-center flex items-center justify-center gap-1.5 transition text-[11px]"
+                rel="noopener noreferrer"
+                class="w-full py-1.5 px-3 rounded-lg text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 transition flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <ExternalLink class="w-3.5 h-3.5" />
-                <span>Ver no GitHub</span>
+                <span>Abrir no GitHub</span>
               </a>
+
+              <button
+                @click="closeInspector"
+                class="w-full py-2 px-3 rounded-lg border text-xs font-medium transition cursor-pointer md:hidden"
+                :class="store.theme === 'light' ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-800' : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-200'"
+              >
+                Fechar Painel
+              </button>
             </div>
-
-          </div>
-        </Transition>
-
-      </div>
-
+          </template>
+        </div>
+      </Transition>
     </div>
-
   </div>
 </template>
 
 <style scoped>
-/* Clean scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 .drawer-slide-enter-active,
 .drawer-slide-leave-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 .drawer-slide-enter-from,
 .drawer-slide-leave-to {
   transform: translateX(100%);
-  opacity: 0.8;
-}
-
-.scrollbar-none {
-  scrollbar-width: none;
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+  opacity: 0.5;
 }
 </style>

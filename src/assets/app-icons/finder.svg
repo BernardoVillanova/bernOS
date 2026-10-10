@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="finderBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34b8ff"/>
+      <stop offset="100%" stop-color="#0066d6"/>
+    </linearGradient>
+    <linearGradient id="finderLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9ce6ff"/>
+      <stop offset="100%" stop-color="#64caff"/>
+    </linearGradient>
+  </defs>
+  <!-- Squircle Base -->
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#finderBg)"/>
+  <!-- Two Tone Face Split -->
+  <path d="M64 16 C64 36 60 54 48 68 C36 82 24 96 24 116 C14 112 8 102 8 90 L8 34 C8 20 20 8 34 8 L64 8 Z" fill="url(#finderLeft)" opacity="0.85"/>
+  <!-- Central Smile Curve -->
+  <path d="M34 82 C44 94 84 94 94 82" stroke="#00356b" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+  <!-- Finder Nose Dividing Line -->
+  <path d="M64 24 L64 68 C64 74 60 76 56 76" stroke="#00356b" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+  <!-- Eyes -->
+  <ellipse cx="40" cy="50" rx="5" ry="7" fill="#00356b"/>
+  <ellipse cx="88" cy="50" rx="5" ry="7" fill="#00356b"/>
+</svg>

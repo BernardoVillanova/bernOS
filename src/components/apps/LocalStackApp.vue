@@ -1,7 +1,36 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useWindowStore } from '../../stores/windowStore'
-import { Search, Home, List, TerminalSquare, LayoutGrid, X, ChevronRight, Loader2, Check } from 'lucide-vue-next'
+import {
+  Search,
+  List,
+  TerminalSquare,
+  LayoutGrid,
+  X,
+  ChevronRight,
+  Loader2,
+  Check,
+  Server,
+  Code,
+  Box,
+  Database,
+  HardDrive,
+  Globe,
+  Workflow,
+  Zap,
+  Shield,
+  Key,
+  Lock,
+  UserCheck,
+  Mail,
+  Activity,
+  Cpu,
+  Share2,
+  Copy,
+  CheckCheck,
+  RefreshCw,
+  Cloud
+} from 'lucide-vue-next'
 
 const store = useWindowStore()
 
@@ -29,6 +58,7 @@ const isDeploying = ref(false)
 const deployedIds = ref<Set<number>>(new Set())
 const deployComplete = ref(false)
 const showToast = ref(false)
+const copied = ref(false)
 const miniTermInput = ref('')
 const miniTermHistory = ref<{ type: 'input' | 'output' | 'error'; text: string }[]>([])
 const miniTermBody = ref<HTMLElement | null>(null)
@@ -75,6 +105,7 @@ const filteredServices = computed(() => {
   const q = searchQuery.value.toLowerCase()
   return services.value.filter(s =>
     s.service_name.toLowerCase().includes(q) ||
+    s.aws_category.toLowerCase().includes(q) ||
     s.curiosity_title.toLowerCase().includes(q) ||
     s.curiosity_content.toLowerCase().includes(q)
   )
@@ -82,30 +113,54 @@ const filteredServices = computed(() => {
 
 const servicesWithCuriosity = computed(() => services.value.filter(s => s.curiosity_content))
 
-// ---------- icon emoji mapping ----------
-const serviceIcon: Record<string, string> = {
-  'AppSync': '🔗', 'API Gateway': '🌐', 'SQS': '📨', 'SNS': '📢', 'Step Functions': '🔀', 'EventBridge': '⚡',
-  'EC2': '🖥️', 'Lambda': 'λ', 'ECS': '🐳', 'ECR': '📦',
-  'CloudFormation': '📋', 'CloudWatch Logs': '📄', 'CloudWatch': '📊', 'Systems Manager': '⚙️', 'CloudTrail': '🔍',
-  'SES': '✉️',
-  'Cognito': '🔐', 'Secrets Manager': '🔑', 'KMS': '🛡️', 'IAM': '👤',
-  'S3': '🪣', 'Backup': '💾',
-  'SageMaker': '🧠',
-  'DynamoDB': '📀', 'RDS': '🗄️', 'ElastiCache': '⚡', 'Timestream': '⏱️',
-  'Athena': '🔎', 'Kinesis': '🌊', 'Kafka': '📬', 'Glue': '🧩', 'Route 53': '🌍'
+// ---------- Clean Vector Icon Mapping ----------
+const getServiceIcon = (name: string) => {
+  switch (name) {
+    case 'EC2': return Server
+    case 'Lambda': return Code
+    case 'ECS':
+    case 'ECR': return Box
+    case 'S3':
+    case 'Backup': return HardDrive
+    case 'DynamoDB':
+    case 'RDS':
+    case 'ElastiCache':
+    case 'Timestream': return Database
+    case 'Route 53': return Globe
+    case 'API Gateway':
+    case 'AppSync':
+    case 'Step Functions': return Workflow
+    case 'EventBridge': return Zap
+    case 'SQS':
+    case 'SES': return Mail
+    case 'Cognito': return UserCheck
+    case 'Secrets Manager': return Key
+    case 'KMS': return Lock
+    case 'IAM': return Shield
+    case 'CloudWatch':
+    case 'CloudWatch Logs':
+    case 'CloudTrail': return Activity
+    case 'SageMaker': return Cpu
+    case 'Kinesis':
+    case 'Kafka':
+    case 'Glue':
+    case 'Athena': return Share2
+    default: return Cloud
+  }
 }
 
-// ---------- icon color class ----------
-const iconColorClass = (color: string) => {
-  const map: Record<string, string> = {
-    orange: 'ls-icon-orange',
-    pink: 'ls-icon-pink',
-    purple: 'ls-icon-purple',
-    blue: 'ls-icon-blue',
-    red: 'ls-icon-red',
-    indigo: 'ls-icon-indigo'
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case 'Compute': return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    case 'Storage': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    case 'Database': return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+    case 'Networking & Content Delivery': return 'text-purple-400 bg-purple-500/10 border-purple-500/20'
+    case 'Security Identity Compliance': return 'text-red-400 bg-red-500/10 border-red-500/20'
+    case 'Application Integration': return 'text-pink-400 bg-pink-500/10 border-pink-500/20'
+    case 'Management & Governance': return 'text-sky-400 bg-sky-500/10 border-sky-500/20'
+    case 'Analytics': return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+    default: return 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20'
   }
-  return map[color] || 'ls-icon-purple'
 }
 
 // ---------- fetch ----------
@@ -123,17 +178,23 @@ async function runDeployAnimation() {
   if (deployComplete.value || isDeploying.value) return
   isDeploying.value = true
   for (const svc of deployOrder.value) {
-    await new Promise(r => setTimeout(r, 280 + Math.random() * 120))
+    await new Promise(r => setTimeout(r, 160 + Math.random() * 80))
     deployedIds.value.add(svc.id)
   }
-  // Also mark all services without resource_key
   for (const svc of services.value) {
     deployedIds.value.add(svc.id)
   }
   isDeploying.value = false
   deployComplete.value = true
   showToast.value = true
-  setTimeout(() => { showToast.value = false }, 4000)
+  store.localstackStatus = 'running'
+  setTimeout(() => { showToast.value = false }, 3500)
+}
+
+function redeployAll() {
+  deployedIds.value.clear()
+  deployComplete.value = false
+  runDeployAnimation()
 }
 
 function isDeployed(id: number) {
@@ -142,7 +203,6 @@ function isDeployed(id: number) {
 
 // ---------- drawer ----------
 function openDrawer(svc: TerraformResource) {
-  if (!deployComplete.value) return
   if (!svc.curiosity_content) return
   selectedService.value = svc
   drawerOpen.value = true
@@ -150,7 +210,7 @@ function openDrawer(svc: TerraformResource) {
 
 function closeDrawer() {
   drawerOpen.value = false
-  setTimeout(() => { selectedService.value = null }, 300)
+  setTimeout(() => { selectedService.value = null }, 200)
 }
 
 function nextService() {
@@ -161,11 +221,22 @@ function nextService() {
   selectedService.value = next
 }
 
+const copySnippet = (text: string) => {
+  navigator.clipboard.writeText(text)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
+
 // ---------- mini terminal ----------
 function scrollMiniTerm() {
   nextTick(() => {
     if (miniTermBody.value) miniTermBody.value.scrollTop = miniTermBody.value.scrollHeight
   })
+}
+
+function executePresetCommand(cmd: string) {
+  miniTermInput.value = cmd
+  handleMiniTermCommand()
 }
 
 function handleMiniTermCommand() {
@@ -177,7 +248,7 @@ function handleMiniTermCommand() {
   if (normalized.startsWith('aws s3 ls')) {
     const storage = services.value.filter(s => s.aws_category === 'Storage' && s.curiosity_content)
     if (storage.length) {
-      const lines = storage.map(s => `  s3://${s.service_name.toLowerCase().replace(/\s/g, '-')}/  →  ${s.curiosity_title}`).join('\n')
+      const lines = storage.map(s => `  2026-10-09 00:00:00  s3://${s.service_name.toLowerCase().replace(/\s/g, '-')}/  (${s.curiosity_title})`).join('\n')
       miniTermHistory.value.push({ type: 'output', text: lines })
     } else {
       miniTermHistory.value.push({ type: 'output', text: '(no buckets found)' })
@@ -185,7 +256,7 @@ function handleMiniTermCommand() {
   } else if (normalized.startsWith('aws lambda list-functions')) {
     const compute = services.value.filter(s => s.aws_category === 'Compute' && s.curiosity_content)
     if (compute.length) {
-      const lines = compute.map(s => `  arn:aws:lambda:us-east-1:${s.service_name.toLowerCase().replace(/\s/g, '-')}  →  ${s.curiosity_title}`).join('\n')
+      const lines = compute.map(s => `  arn:aws:lambda:us-east-1:000000000000:function/${s.service_name.toLowerCase().replace(/\s/g, '-')}  [Runtime: nodejs20.x]`).join('\n')
       miniTermHistory.value.push({ type: 'output', text: lines })
     } else {
       miniTermHistory.value.push({ type: 'output', text: '(no functions found)' })
@@ -193,7 +264,7 @@ function handleMiniTermCommand() {
   } else if (normalized.startsWith('aws iam list-roles')) {
     const sec = services.value.filter(s => s.aws_category === 'Security Identity Compliance' && s.curiosity_content)
     if (sec.length) {
-      const lines = sec.map(s => `  arn:aws:iam::role/${s.service_name.toLowerCase().replace(/\s/g, '-')}  →  ${s.curiosity_title}`).join('\n')
+      const lines = sec.map(s => `  arn:aws:iam::000000000000:role/${s.service_name.toLowerCase().replace(/\s/g, '-')}  (Policy: AdministratorAccess)`).join('\n')
       miniTermHistory.value.push({ type: 'output', text: lines })
     } else {
       miniTermHistory.value.push({ type: 'output', text: '(no roles found)' })
@@ -201,9 +272,12 @@ function handleMiniTermCommand() {
   } else if (normalized === 'clear') {
     miniTermHistory.value = []
   } else if (normalized === 'help') {
-    miniTermHistory.value.push({ type: 'output', text: 'Available commands:\n  aws s3 ls\n  aws lambda list-functions\n  aws iam list-roles\n  clear\n  help' })
+    miniTermHistory.value.push({
+      type: 'output',
+      text: 'Available awslocal commands:\n  aws s3 ls\n  aws lambda list-functions\n  aws iam list-roles\n  clear\n  help'
+    })
   } else {
-    miniTermHistory.value.push({ type: 'error', text: `An error occurred: command not found in this region` })
+    miniTermHistory.value.push({ type: 'error', text: `An error occurred: command '${cmd}' not supported in emulated us-east-1 endpoint` })
   }
 
   miniTermInput.value = ''
@@ -213,704 +287,418 @@ function handleMiniTermCommand() {
 // ---------- lifecycle ----------
 onMounted(async () => {
   await fetchServices()
-  // Trigger deploy animation right after services are loaded (window is already open at this point)
   if (services.value.length > 0 && !deployComplete.value && !isDeploying.value) {
-    setTimeout(() => runDeployAnimation(), 600)
+    setTimeout(() => runDeployAnimation(), 400)
   }
 })
 
-// Fallback: Watch for window re-open or late data load to trigger deploy animation
 watch(
   [() => store.windows.find(w => w.id === 'localstack')?.isOpen, () => services.value.length],
   ([isOpen, count]) => {
     if (isOpen && count > 0 && !deployComplete.value && !isDeploying.value) {
-      setTimeout(() => runDeployAnimation(), 600)
+      setTimeout(() => runDeployAnimation(), 400)
     }
   }
 )
 </script>
 
 <template>
-  <div class="ls-root">
-    <!-- Header Bar -->
-    <div class="ls-header">
-      <div class="ls-header-left">
-        <div class="ls-logo">
-          <span class="ls-logo-icon">4L</span>
+  <div class="w-full h-full bg-[#0c0d12] flex flex-col overflow-hidden text-zinc-300 font-sans select-none relative">
+    
+    <!-- Header Bar (Modern Dark Studio Console) -->
+    <div class="h-12 bg-[#090a0e] border-b border-white/[0.08] flex items-center justify-between px-3.5 sm:px-4 shrink-0 gap-3">
+      
+      <!-- Left: Logo & Engine Meta -->
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+          <Cloud class="w-4 h-4 stroke-[2]" />
         </div>
-        <span class="ls-header-title">Container Resources</span>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-zinc-100 tracking-tight">LocalStack Studio</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              v4.2.0
+            </span>
+          </div>
+          <span class="text-[10px] text-zinc-500 font-mono hidden sm:inline">us-east-1 · local endpoint</span>
+        </div>
       </div>
-      <div class="ls-header-nav">
+
+      <!-- Center: View Switcher -->
+      <div class="flex items-center bg-white/[0.04] p-1 rounded-lg border border-white/[0.06] text-xs">
         <button
-          class="ls-nav-btn"
-          :class="{ active: viewMode === 'grid' }"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer"
+          :class="viewMode === 'grid' ? 'bg-white/10 text-white shadow-xs' : 'text-zinc-400 hover:text-zinc-200'"
           @click="viewMode = 'grid'"
-          title="Grid View"
         >
-          <Home :size="16" />
+          <LayoutGrid class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Grid</span>
         </button>
         <button
-          class="ls-nav-btn"
-          :class="{ active: viewMode === 'list' }"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer"
+          :class="viewMode === 'list' ? 'bg-white/10 text-white shadow-xs' : 'text-zinc-400 hover:text-zinc-200'"
           @click="viewMode = 'list'"
-          title="List View"
         >
-          <List :size="16" />
+          <List class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Lista</span>
         </button>
         <button
-          class="ls-nav-btn"
-          :class="{ active: viewMode === 'terminal' }"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer"
+          :class="viewMode === 'terminal' ? 'bg-white/10 text-white shadow-xs' : 'text-zinc-400 hover:text-zinc-200'"
           @click="viewMode = 'terminal'"
-          title="Terminal"
         >
-          <TerminalSquare :size="16" />
-        </button>
-        <button
-          class="ls-nav-btn"
-          :class="{ active: viewMode === 'grid' }"
-          @click="viewMode = 'grid'"
-          title="Grid"
-        >
-          <LayoutGrid :size="16" />
+          <TerminalSquare class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Terminal</span>
         </button>
       </div>
-      <div class="ls-header-right">
-        <span class="ls-back-text">← Back to Containers</span>
+
+      <!-- Right: Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button
+          v-if="!isDeploying"
+          @click="redeployAll"
+          class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-md transition cursor-pointer"
+          title="Reaplicar Terraform"
+        >
+          <RefreshCw class="w-3 h-3" />
+          <span class="hidden md:inline">Reaplicar</span>
+        </button>
       </div>
     </div>
 
-    <!-- Search bar -->
-    <div class="ls-search-bar">
-      <Search :size="14" class="ls-search-icon" />
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Type to search..."
-        class="ls-search-input"
-      />
+    <!-- Search & Filter Ribbon -->
+    <div v-if="viewMode !== 'terminal'" class="px-4 py-2 bg-[#090a0e]/60 border-b border-white/[0.06] flex items-center justify-between gap-3 shrink-0">
+      <div class="relative flex-grow max-w-md">
+        <Search class="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Filtrar por serviço, categoria ou tag..."
+          class="w-full bg-[#12131b] border border-white/[0.06] focus:border-amber-500/40 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 outline-none transition"
+        />
+      </div>
+      <div class="text-[11px] text-zinc-500 font-mono hidden sm:flex items-center gap-2">
+        <span>Total: <strong class="text-zinc-300">{{ filteredServices.length }}</strong> recursos</span>
+        <span>·</span>
+        <span class="text-emerald-400 font-medium">{{ deployedIds.size }} provisionados</span>
+      </div>
     </div>
 
     <!-- Toast notification -->
-    <Transition name="toast">
-      <div v-if="showToast" class="ls-toast">
-        <Check :size="16" class="text-emerald-400" />
-        <span>Apply complete! {{ deployOrder.length }} added.</span>
+    <Transition name="fade">
+      <div
+        v-if="showToast"
+        class="absolute top-16 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-emerald-950/80 border border-emerald-500/30 rounded-lg text-emerald-300 text-xs shadow-xl backdrop-blur-md"
+      >
+        <Check class="w-3.5 h-3.5 text-emerald-400" />
+        <span>Terraform apply completo: {{ deployOrder.length }} recursos ativos!</span>
       </div>
     </Transition>
 
-    <!-- Main content area -->
-    <div class="ls-body">
-      <!-- Grid View -->
+    <!-- Main Content Area -->
+    <div class="flex-grow overflow-auto p-4 relative">
+      
+      <!-- GRID VIEW -->
       <template v-if="viewMode === 'grid'">
-        <div class="ls-grid" v-if="filteredServices.length > 0">
+        <div v-if="filteredServices.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div
             v-for="col in columns"
             :key="col.column"
-            class="ls-column"
+            class="flex flex-col gap-4"
           >
             <div
               v-for="catGroup in col.categories"
               :key="catGroup.category"
-              class="ls-category-group"
+              class="flex flex-col gap-2"
             >
-              <div class="ls-category-label">{{ catGroup.category }}</div>
-              <div
-                v-for="svc in catGroup.items"
-                :key="svc.id"
-                class="ls-service-item"
-                :class="{
-                  'ls-pending': !isDeployed(svc.id) && isDeploying,
-                  'ls-active': selectedService?.id === svc.id && drawerOpen,
-                  'ls-has-curiosity': !!svc.curiosity_content && deployComplete
-                }"
-                @click="openDrawer(svc)"
-              >
-                <div class="ls-service-icon" :class="[iconColorClass(svc.icon_color), { 'ls-icon-pending': !isDeployed(svc.id) && isDeploying }]">
-                  <template v-if="!isDeployed(svc.id) && isDeploying">
-                    <Loader2 :size="18" class="animate-spin text-gray-500" />
-                  </template>
-                  <template v-else>
-                    <span class="ls-emoji">{{ serviceIcon[svc.service_name] || '☁️' }}</span>
-                  </template>
+              <!-- Category Header -->
+              <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-white/[0.06] pb-1 px-1">
+                <span>{{ catGroup.category }}</span>
+                <span class="font-mono text-[9px] text-zinc-500">{{ catGroup.items.length }}</span>
+              </div>
+
+              <!-- Service Cards -->
+              <div class="flex flex-col gap-1.5">
+                <div
+                  v-for="svc in catGroup.items"
+                  :key="svc.id"
+                  @click="openDrawer(svc)"
+                  class="group flex items-center justify-between p-2 rounded-xl border transition-all duration-150 cursor-pointer"
+                  :class="[
+                    selectedService?.id === svc.id && drawerOpen
+                      ? 'bg-amber-500/10 border-amber-500/40 text-white'
+                      : 'bg-[#11131a] hover:bg-[#161822] border-white/[0.06] hover:border-white/15 text-zinc-300'
+                  ]"
+                >
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <!-- Vector Service Icon -->
+                    <div
+                      class="w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors"
+                      :class="getCategoryColor(svc.aws_category)"
+                    >
+                      <component :is="getServiceIcon(svc.service_name)" class="w-3.5 h-3.5 stroke-[2]" />
+                    </div>
+
+                    <!-- Service info -->
+                    <div class="flex flex-col min-w-0">
+                      <div class="flex items-center gap-1.5 truncate">
+                        <span class="text-xs font-medium text-zinc-200 group-hover:text-white truncate">{{ svc.service_name }}</span>
+                        <span v-if="svc.is_pro" class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 leading-none">
+                          Pro
+                        </span>
+                      </div>
+                      <span class="text-[10px] text-zinc-500 font-mono truncate">{{ svc.resource_key || 'aws_resource' }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Status Dot / Deploy spinner -->
+                  <div class="flex items-center pl-2 shrink-0">
+                    <Loader2 v-if="!isDeployed(svc.id) && isDeploying" class="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                    <span
+                      v-else-if="isDeployed(svc.id)"
+                      class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"
+                      title="Ativo / Deployed"
+                    ></span>
+                    <span v-else class="w-2 h-2 rounded-full bg-zinc-600" title="Standby"></span>
+                  </div>
                 </div>
-                <span
-                  class="ls-service-name"
-                  :class="{ 'ls-name-pending': !isDeployed(svc.id) && isDeploying }"
-                >{{ svc.service_name }}</span>
-                <span v-if="svc.is_pro" class="ls-pro-badge">(Pro)</span>
               </div>
             </div>
           </div>
         </div>
-        <div v-else class="ls-no-results">
-          <p>Nenhum serviço encontrado.</p>
-          <p class="ls-no-results-hint">Tente "xadrez", "kubernetes", "vim", "pipeline"...</p>
+
+        <div v-else class="flex flex-col items-center justify-center h-64 text-zinc-500 gap-2">
+          <Search class="w-8 h-8 text-zinc-600" />
+          <p class="text-xs">Nenhum recurso encontrado para "{{ searchQuery }}"</p>
         </div>
       </template>
 
-      <!-- List View -->
-      <template v-if="viewMode === 'list'">
-        <div class="ls-list" v-if="filteredServices.length > 0">
+      <!-- LIST VIEW -->
+      <template v-else-if="viewMode === 'list'">
+        <div v-if="filteredServices.length > 0" class="flex flex-col gap-1.5 max-w-4xl mx-auto">
           <div
             v-for="svc in filteredServices"
             :key="svc.id"
-            class="ls-list-item"
-            :class="{
-              'ls-active': selectedService?.id === svc.id && drawerOpen,
-              'ls-has-curiosity': !!svc.curiosity_content && deployComplete
-            }"
             @click="openDrawer(svc)"
+            class="flex items-center justify-between p-2.5 rounded-xl border bg-[#11131a] hover:bg-[#161822] border-white/[0.06] hover:border-white/15 transition-all duration-150 cursor-pointer group"
+            :class="selectedService?.id === svc.id && drawerOpen ? 'border-amber-500/40 bg-amber-500/10' : ''"
           >
-            <div class="ls-service-icon ls-icon-sm" :class="iconColorClass(svc.icon_color)">
-              <span class="ls-emoji">{{ serviceIcon[svc.service_name] || '☁️' }}</span>
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                class="w-8 h-8 rounded-lg border flex items-center justify-center shrink-0"
+                :class="getCategoryColor(svc.aws_category)"
+              >
+                <component :is="getServiceIcon(svc.service_name)" class="w-4 h-4 stroke-[2]" />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-zinc-200 group-hover:text-white">{{ svc.service_name }}</span>
+                  <span v-if="svc.is_pro" class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Pro</span>
+                </div>
+                <span class="text-[10px] text-zinc-500 font-mono truncate">{{ svc.resource_key || 'aws_resource' }}</span>
+              </div>
             </div>
-            <span class="ls-service-name">{{ svc.service_name }}</span>
-            <span class="ls-list-category">{{ svc.aws_category }}</span>
-            <span v-if="svc.is_pro" class="ls-pro-badge">(Pro)</span>
-            <ChevronRight v-if="svc.curiosity_content" :size="14" class="ls-list-arrow" />
+
+            <div class="flex items-center gap-4">
+              <span class="text-[11px] text-zinc-400 font-mono hidden sm:inline">{{ svc.aws_category }}</span>
+              <div class="flex items-center gap-2">
+                <span
+                  v-if="isDeployed(svc.id)"
+                  class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  Active
+                </span>
+                <span
+                  v-else-if="isDeploying"
+                  class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1.5"
+                >
+                  <Loader2 class="w-3 h-3 animate-spin" />
+                  Creating
+                </span>
+                <ChevronRight class="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition" />
+              </div>
+            </div>
           </div>
         </div>
-        <div v-else class="ls-no-results">
-          <p>Nenhum serviço encontrado.</p>
-          <p class="ls-no-results-hint">Tente "xadrez", "kubernetes", "vim", "pipeline"...</p>
+
+        <div v-else class="flex flex-col items-center justify-center h-64 text-zinc-500 gap-2">
+          <Search class="w-8 h-8 text-zinc-600" />
+          <p class="text-xs">Nenhum serviço listado para a busca.</p>
         </div>
       </template>
 
-      <!-- Mini Terminal View -->
-      <template v-if="viewMode === 'terminal'">
-        <div class="ls-mini-terminal">
-          <div class="ls-mini-term-header">
-            <span class="ls-mini-term-title">LocalStack CLI — us-east-1</span>
-          </div>
-          <div ref="miniTermBody" class="ls-mini-term-body">
-            <div class="ls-mini-term-welcome">
-              <span class="text-gray-500">Welcome to LocalStack CLI. Type 'help' for available commands.</span>
+      <!-- TERMINAL VIEW -->
+      <template v-else-if="viewMode === 'terminal'">
+        <div class="h-full bg-[#08090d] rounded-xl border border-white/[0.08] flex flex-col overflow-hidden font-mono text-xs shadow-2xl">
+          <!-- Terminal Titlebar -->
+          <div class="h-8 bg-[#0e1017] border-b border-white/[0.06] px-3 flex items-center justify-between text-zinc-400 select-none">
+            <span class="flex items-center gap-1.5 text-[11px]">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              awslocal CLI — endpoint: http://localhost:4566
+            </span>
+            <div class="flex items-center gap-2 text-[10px]">
+              <span class="text-zinc-500">Região: us-east-1</span>
             </div>
-            <div
-              v-for="(entry, i) in miniTermHistory"
-              :key="i"
-              :class="{
-                'ls-term-input': entry.type === 'input',
-                'ls-term-output': entry.type === 'output',
-                'ls-term-error': entry.type === 'error'
-              }"
+          </div>
+
+          <!-- Quick Command Preset Chips -->
+          <div class="px-3 py-1.5 bg-[#0b0c12] border-b border-white/[0.04] flex items-center gap-2 overflow-x-auto select-none">
+            <span class="text-[10px] text-zinc-500 shrink-0">Comandos rápidos:</span>
+            <button
+              v-for="cmd in ['aws s3 ls', 'aws lambda list-functions', 'aws iam list-roles', 'help', 'clear']"
+              :key="cmd"
+              @click="executePresetCommand(cmd)"
+              class="px-2 py-0.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 rounded text-[10px] transition cursor-pointer shrink-0 font-mono"
             >
-              <pre class="ls-term-pre">{{ entry.text }}</pre>
+              {{ cmd }}
+            </button>
+          </div>
+
+          <!-- Terminal Output Body -->
+          <div ref="miniTermBody" class="flex-grow p-4 overflow-y-auto space-y-2 select-text leading-relaxed text-zinc-300">
+            <div class="text-zinc-500 text-[11px] pb-2 border-b border-white/[0.04]">
+              LocalStack 4.2.0 Emulation Engine.<br />
+              Digite comandos da AWS CLI (usando o alias awslocal) ou clique nos atalhos acima.
+            </div>
+
+            <div v-for="(entry, idx) in miniTermHistory" :key="idx" class="whitespace-pre-wrap">
+              <span v-if="entry.type === 'input'" class="text-amber-400 font-semibold">{{ entry.text }}</span>
+              <pre v-else-if="entry.type === 'output'" class="text-emerald-400 font-mono text-[11px]">{{ entry.text }}</pre>
+              <span v-else class="text-red-400 font-mono text-[11px]">{{ entry.text }}</span>
             </div>
           </div>
-          <div class="ls-mini-term-prompt">
-            <span class="text-emerald-400">awslocal $</span>
+
+          <!-- Terminal Input Row -->
+          <div class="p-2.5 bg-[#0a0b10] border-t border-white/[0.06] flex items-center gap-2">
+            <span class="text-emerald-400 font-bold select-none text-xs">awslocal $</span>
             <input
               v-model="miniTermInput"
               type="text"
-              class="ls-mini-term-input"
-              placeholder="aws s3 ls"
+              class="flex-grow bg-transparent text-zinc-200 outline-none text-xs font-mono placeholder-zinc-600"
+              placeholder="Digite um comando (ex: aws s3 ls)..."
               @keydown.enter="handleMiniTermCommand"
             />
           </div>
         </div>
       </template>
+
     </div>
 
-    <!-- Detail Drawer -->
+    <!-- Detail Drawer (Slide-in Inspect Panel) -->
     <Transition name="drawer">
-      <div v-if="drawerOpen && selectedService" class="ls-drawer-overlay" @click.self="closeDrawer">
-        <div class="ls-drawer">
-          <button class="ls-drawer-close" @click="closeDrawer">
-            <X :size="18" />
-          </button>
-          <div class="ls-drawer-header">
-            <div class="ls-drawer-icon" :class="iconColorClass(selectedService.icon_color)">
-              <span class="ls-emoji-lg">{{ serviceIcon[selectedService.service_name] || '☁️' }}</span>
+      <div
+        v-if="drawerOpen && selectedService"
+        class="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-[#0c0d12]/95 border-l border-white/10 shadow-2xl backdrop-blur-2xl z-[100] flex flex-col select-text"
+      >
+        <!-- Drawer Header -->
+        <div class="p-4 border-b border-white/[0.08] flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0"
+              :class="getCategoryColor(selectedService.aws_category)"
+            >
+              <component :is="getServiceIcon(selectedService.service_name)" class="w-5 h-5 stroke-[2]" />
             </div>
-            <h3 class="ls-drawer-title">{{ selectedService.service_name }}</h3>
-            <span class="ls-drawer-category">{{ selectedService.aws_category }}</span>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-white">{{ selectedService.service_name }}</h3>
+                <span v-if="selectedService.is_pro" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  Pro Feature
+                </span>
+              </div>
+              <span class="text-[11px] text-zinc-400 font-mono">{{ selectedService.aws_category }}</span>
+            </div>
           </div>
-          <div class="ls-drawer-divider"></div>
-          <div class="ls-drawer-body">
-            <p class="ls-drawer-curiosity">{{ selectedService.curiosity_content }}</p>
+
+          <button
+            @click="closeDrawer"
+            class="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Drawer Body -->
+        <div class="flex-grow p-4 overflow-y-auto flex flex-col gap-4 text-xs leading-relaxed">
+          
+          <!-- Resource Identifier Card -->
+          <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-2">
+            <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Identificador Terraform</span>
+            <div class="flex items-center justify-between gap-2">
+              <code class="text-zinc-200 font-mono text-xs bg-black/40 px-2 py-1 rounded border border-white/[0.04] truncate flex-grow">
+                {{ selectedService.resource_key || 'aws_' + selectedService.service_name.toLowerCase() }}
+              </code>
+              <button
+                @click="copySnippet(selectedService.resource_key || selectedService.service_name)"
+                class="p-1.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
+                title="Copiar recurso"
+              >
+                <CheckCheck v-if="copied" class="w-3.5 h-3.5 text-emerald-400" />
+                <Copy v-else class="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div class="ls-drawer-divider"></div>
-          <div class="ls-drawer-footer">
-            <button class="ls-drawer-next" @click="nextService">
-              Ver próximo serviço
-              <ChevronRight :size="16" />
-            </button>
+
+          <!-- Trivia / Curiosity Section -->
+          <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3.5 flex flex-col gap-2">
+            <div class="flex items-center gap-1.5 text-amber-400 font-medium text-xs">
+              <Zap class="w-3.5 h-3.5" />
+              <span>{{ selectedService.curiosity_title || 'Nota de Infraestrutura' }}</span>
+            </div>
+            <p class="text-zinc-300 text-[11px] leading-relaxed">
+              {{ selectedService.curiosity_content }}
+            </p>
           </div>
+
+          <!-- CLI Quick Run Tip -->
+          <div class="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-2">
+            <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Consulta Local via Terminal</span>
+            <code class="text-[11px] font-mono text-emerald-400 bg-black/50 p-2 rounded border border-white/[0.04]">
+              awslocal {{ selectedService.service_name.toLowerCase() }} describe
+            </code>
+          </div>
+
+        </div>
+
+        <!-- Drawer Footer -->
+        <div class="p-3.5 border-t border-white/[0.08] flex justify-between items-center bg-[#090a0e]">
+          <span class="text-[10px] text-zinc-500 font-mono">Status: Emulado em us-east-1</span>
+          <button
+            @click="nextService"
+            class="flex items-center gap-1 text-xs font-medium text-zinc-300 hover:text-white px-2.5 py-1 rounded bg-white/[0.06] hover:bg-white/10 transition cursor-pointer"
+          >
+            <span>Próximo</span>
+            <ChevronRight class="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </Transition>
+
   </div>
 </template>
 
 <style scoped>
-/* ═══════════════════ ROOT ═══════════════════ */
-.ls-root {
-  width: 100%;
-  height: 100%;
-  background: #1a1f35;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  position: relative;
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
 }
 
-/* ═══════════════════ HEADER ═══════════════════ */
-.ls-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: #16192e;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  flex-shrink: 0;
-}
-.ls-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ls-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.ls-logo-icon {
-  color: #fff;
-  font-weight: 800;
-  font-size: 11px;
-  letter-spacing: -0.5px;
-}
-.ls-header-title {
-  color: #e2e8f0;
-  font-size: 14px;
-  font-weight: 600;
-}
-.ls-header-nav {
-  display: flex;
-  gap: 2px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 8px;
-  padding: 2px;
-}
-.ls-nav-btn {
-  width: 32px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.ls-nav-btn:hover {
-  color: #e2e8f0;
-  background: rgba(255,255,255,0.06);
-}
-.ls-nav-btn.active {
-  color: #e2e8f0;
-  background: rgba(99, 102, 241, 0.2);
-}
-.ls-header-right {
-  display: flex;
-  align-items: center;
-}
-.ls-back-text {
-  color: #6b7280;
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.ls-back-text:hover {
-  color: #a5b4fc;
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(100%);
+  opacity: 0.9;
 }
 
-/* ═══════════════════ SEARCH ═══════════════════ */
-.ls-search-bar {
-  display: flex;
-  align-items: center;
-  margin: 10px 16px 6px;
-  padding: 8px 12px;
-  background: #252b45;
-  border-radius: 6px;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.ls-search-icon { color: #6b7280; flex-shrink: 0; }
-.ls-search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #e2e8f0;
-  font-size: 13px;
-  font-family: inherit;
-}
-.ls-search-input::placeholder { color: #4b5563; }
-
-/* ═══════════════════ TOAST ═══════════════════ */
-.ls-toast {
-  position: absolute;
-  top: 56px;
-  right: 16px;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 8px;
-  color: #6ee7b7;
-  font-size: 13px;
-  font-weight: 500;
-  backdrop-filter: blur(8px);
-}
-.toast-enter-active { transition: all 0.3s ease-out; }
-.toast-leave-active { transition: all 0.4s ease-in; }
-.toast-enter-from { opacity: 0; transform: translateY(-12px) scale(0.95); }
-.toast-leave-to { opacity: 0; transform: translateY(-8px); }
-
-/* ═══════════════════ BODY ═══════════════════ */
-.ls-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 8px 16px 16px;
-}
-.ls-body::-webkit-scrollbar { width: 4px; }
-.ls-body::-webkit-scrollbar-track { background: transparent; }
-.ls-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-/* ═══════════════════ GRID VIEW ═══════════════════ */
-.ls-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px 16px;
-}
-.ls-column {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.ls-category-group {
-  margin-bottom: 12px;
-}
-.ls-category-label {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 6px 4px 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  margin-bottom: 2px;
-}
-.ls-service-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  cursor: default;
-  transition: all 0.2s;
-  border-left: 2px solid transparent;
-}
-.ls-service-item.ls-has-curiosity {
-  cursor: pointer;
-}
-.ls-service-item.ls-has-curiosity:hover {
-  background: rgba(255,255,255,0.05);
-}
-.ls-service-item.ls-active {
-  background: rgba(99, 102, 241, 0.15);
-  border-left-color: #818cf8;
-}
-.ls-service-item.ls-pending {
-  opacity: 0.5;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* ═══════════════════ SERVICE ICON ═══════════════════ */
-.ls-service-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.3s;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
-.ls-icon-sm {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-.ls-icon-pending {
-  background: #2a2f48 !important;
-}
-.ls-icon-orange { background: #f97316; }
-.ls-icon-pink { background: #ec4899; }
-.ls-icon-red { background: #ef4444; }
-.ls-icon-purple { background: #8b5cf6; }
-.ls-icon-blue { background: #3b82f6; }
-.ls-icon-indigo { background: #6366f1; }
-
-.ls-emoji, .ls-emoji-lg {
-  font-size: 16px;
-  line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-}
-.ls-emoji-lg { font-size: 28px; }
-
-/* ═══════════════════ SERVICE NAME / BADGES ═══════════════════ */
-.ls-service-name {
-  font-size: 14px;
-  color: #e2e8f0;
-  font-weight: 400;
-  white-space: nowrap;
-  transition: color 0.3s;
-}
-.ls-name-pending {
-  color: #4b5563;
-}
-.ls-pro-badge {
-  border: 1px solid #6b7280;
-  color: #9ca3af;
-  font-size: 10px;
-  border-radius: 20px;
-  padding: 1px 7px;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-
-/* ═══════════════════ LIST VIEW ═══════════════════ */
-.ls-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.ls-list-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  cursor: default;
-  transition: all 0.2s;
-  border-left: 2px solid transparent;
-}
-.ls-list-item.ls-has-curiosity { cursor: pointer; }
-.ls-list-item.ls-has-curiosity:hover { background: rgba(255,255,255,0.05); }
-.ls-list-item.ls-active {
-  background: rgba(99, 102, 241, 0.15);
-  border-left-color: #818cf8;
-}
-.ls-list-category {
-  color: #6b7280;
-  font-size: 11px;
-  margin-left: auto;
-  white-space: nowrap;
-}
-.ls-list-arrow {
-  color: #4b5563;
-  flex-shrink: 0;
-}
-
-/* ═══════════════════ NO RESULTS ═══════════════════ */
-.ls-no-results {
-  text-align: center;
-  padding: 60px 20px;
-  color: #6b7280;
-  font-size: 14px;
-}
-.ls-no-results-hint {
-  margin-top: 8px;
-  color: #4b5563;
-  font-size: 12px;
-  font-style: italic;
-}
-
-/* ═══════════════════ MINI TERMINAL ═══════════════════ */
-.ls-mini-terminal {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: #0d1117;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.06);
-  overflow: hidden;
-}
-.ls-mini-term-header {
-  padding: 8px 12px;
-  background: #161b22;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.ls-mini-term-title {
-  color: #8b949e;
-  font-size: 12px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-}
-.ls-mini-term-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 12px;
-}
-.ls-mini-term-body::-webkit-scrollbar { width: 4px; }
-.ls-mini-term-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-.ls-mini-term-welcome { margin-bottom: 8px; }
-.ls-term-input { color: #c9d1d9; margin-bottom: 2px; }
-.ls-term-output { color: #8b949e; margin-bottom: 6px; }
-.ls-term-error { color: #f85149; margin-bottom: 6px; }
-.ls-term-pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: inherit;
-  font-size: inherit;
-}
-.ls-mini-term-prompt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #161b22;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 12px;
-}
-.ls-mini-term-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #c9d1d9;
-  font-family: inherit;
-  font-size: inherit;
-}
-.ls-mini-term-input::placeholder { color: #484f58; }
-
-/* ═══════════════════ DRAWER ═══════════════════ */
-.ls-drawer-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  background: rgba(0,0,0,0.25);
-}
-.ls-drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 380px;
-  background: #1e2340;
-  border-left: 1px solid rgba(139, 92, 246, 0.3);
-  display: flex;
-  flex-direction: column;
-  box-shadow: -8px 0 32px rgba(0,0,0,0.4);
-  overflow-y: auto;
-}
-.ls-drawer-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: rgba(255,255,255,0.06);
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.ls-drawer-close:hover {
-  background: rgba(255,255,255,0.1);
-  color: #e2e8f0;
-}
-.ls-drawer-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 32px 24px 16px;
-}
-.ls-drawer-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.ls-drawer-title {
-  color: #f1f5f9;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-.ls-drawer-category {
-  color: #6b7280;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.ls-drawer-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.06);
-  margin: 0 24px;
-}
-.ls-drawer-body {
-  flex: 1;
-  padding: 20px 24px;
-}
-.ls-drawer-curiosity {
-  color: #d1d5db;
-  font-size: 14px;
-  line-height: 1.8;
-  margin: 0;
-}
-.ls-drawer-footer {
-  padding: 16px 24px 20px;
-}
-.ls-drawer-next {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  justify-content: center;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  background: rgba(139, 92, 246, 0.08);
-  color: #a5b4fc;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.ls-drawer-next:hover {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(139, 92, 246, 0.5);
-}
-
-/* ═══════════════════ DRAWER TRANSITION ═══════════════════ */
-.drawer-enter-active { transition: all 0.3s ease-out; }
-.drawer-leave-active { transition: all 0.25s ease-in; }
-.drawer-enter-from .ls-drawer { transform: translateX(100%); }
-.drawer-leave-to .ls-drawer { transform: translateX(100%); }
-.drawer-enter-from { opacity: 0; }
-.drawer-leave-to { opacity: 0; }
 </style>

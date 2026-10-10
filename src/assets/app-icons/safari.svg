@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="safariBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b72e8"/>
+      <stop offset="100%" stop-color="#0a46b8"/>
+    </linearGradient>
+    <linearGradient id="needleRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3b30"/>
+      <stop offset="100%" stop-color="#d70015"/>
+    </linearGradient>
+    <linearGradient id="needleWhite" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e5e5ea"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Circle with White Rim -->
+  <circle cx="64" cy="64" r="60" fill="url(#safariBg)" stroke="#ffffff" stroke-width="4"/>
+  <!-- Tick Marks -->
+  <g stroke="#ffffff" stroke-width="1.5" opacity="0.6">
+    <line x1="64" y1="12" x2="64" y2="19"/>
+    <line x1="64" y1="109" x2="64" y2="116"/>
+    <line x1="12" y1="64" x2="19" y2="64"/>
+    <line x1="109" y1="64" x2="116" y2="64"/>
+    <line x1="27" y1="27" x2="32" y2="32"/>
+    <line x1="96" y1="96" x2="101" y2="101"/>
+    <line x1="101" y1="27" x2="96" y2="32"/>
+    <line x1="32" y1="96" x2="27" y2="101"/>
+  </g>
+  <!-- Compass Needle (Tilted 45deg) -->
+  <g transform="rotate(45 64 64)">
+    <polygon points="64,18 73,64 64,64" fill="url(#needleRed)"/>
+    <polygon points="64,18 55,64 64,64" fill="#ff453a"/>
+    <polygon points="64,110 73,64 64,64" fill="url(#needleWhite)"/>
+    <polygon points="64,110 55,64 64,64" fill="#d1d1d6"/>
+    <circle cx="64" cy="64" r="5" fill="#ffffff"/>
+    <circle cx="64" cy="64" r="2.5" fill="#007aff"/>
+  </g>
+</svg>

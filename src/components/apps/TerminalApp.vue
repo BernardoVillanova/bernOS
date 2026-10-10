@@ -25,6 +25,61 @@ const inputField = ref<HTMLInputElement | null>(null)
 const isSudoPrompt = ref(false)
 const sudoAction = ref('')
 
+// htop Mode states
+const isHtopMode = ref(false)
+const selectedHtopRow = ref(0)
+let htopTimer: ReturnType<typeof setInterval> | null = null
+
+const htopCoresLeft = ref([
+  { core: '0', pct: 45 },
+  { core: '1', pct: 68 },
+  { core: '2', pct: 32 },
+  { core: '3', pct: 85 }
+])
+
+const htopCoresRight = ref([
+  { core: '4', pct: 28 },
+  { core: '5', pct: 54 },
+  { core: '6', pct: 92 },
+  { core: '7', pct: 41 }
+])
+
+const htopProcessList = ref([
+  { pid: '1024', user: 'bern', virt: '1.8G', res: '340M', cpu: '18.4', mem: '4.2', time: '0:42.10', command: 'k8s-apiserver --secure-port=6443' },
+  { pid: '1025', user: 'bern', virt: '1.2G', res: '280M', cpu: '14.2', mem: '3.8', time: '1:15.02', command: 'dockerd --bip=172.17.0.1/16' },
+  { pid: '1026', user: 'bern', virt: '850M', res: '190M', cpu: '12.0', mem: '2.5', time: '0:18.40', command: 'terraform apply -auto-approve' },
+  { pid: '1027', user: 'bern', virt: '780M', res: '160M', cpu: '9.5',  mem: '2.1', time: '0:54.12', command: 'grafana-server --config=/etc/grafana' },
+  { pid: '1028', user: 'bern', virt: '620M', res: '140M', cpu: '8.1',  mem: '1.9', time: '0:39.80', command: 'prometheus --config.file=/etc/prom' },
+  { pid: '1029', user: 'bern', virt: '210M', res: '95M',  cpu: '4.0',  mem: '1.2', time: '2:01.00', command: 'nvim ~/projects/bernos/' },
+  { pid: '1030', user: 'root', virt: '180M', res: '60M',  cpu: '2.5',  mem: '0.8', time: '3:10.45', command: 'containerd --config /etc/containerd' },
+  { pid: '1031', user: 'bern', virt: '120M', res: '45M',  cpu: '1.2',  mem: '0.5', time: '0:08.12', command: 'cachyos-kernel /vmlinuz-linux' }
+])
+
+const enterHtopMode = () => {
+  isHtopMode.value = true
+  selectedHtopRow.value = 0
+  if (htopTimer) clearInterval(htopTimer)
+  htopTimer = setInterval(() => {
+    htopCoresLeft.value.forEach(c => {
+      c.pct = Math.min(98, Math.max(12, Math.floor(c.pct + (Math.random() * 20 - 10))))
+    })
+    htopCoresRight.value.forEach(c => {
+      c.pct = Math.min(98, Math.max(12, Math.floor(c.pct + (Math.random() * 20 - 10))))
+    })
+  }, 1000)
+}
+
+const exitHtop = () => {
+  if (htopTimer) clearInterval(htopTimer)
+  htopTimer = null
+  isHtopMode.value = false
+  terminalHistory.value.push({ type: 'output', text: '[htop] Terminado. Retornando ao shell.' })
+  scrollToBottom()
+  nextTick(() => {
+    if (inputField.value) inputField.value.focus()
+  })
+}
+
 // Terraform states
 const tfInitDone = ref(false)
 const tfPlanDone = ref(false)
@@ -35,36 +90,28 @@ const isTfRunning = ref(false)
 
 const windowStore = useWindowStore()
 
-const bootLines = [
-  'Initializing BernOS kernel v6.2.9-cachyos...',
-  'Checking hardware devices... OK',
-  'CPU: AMD Ryzen 9 5900X (12 cores, 24 threads) @ 4.20GHz',
-  'GPU: NVIDIA RTX 4070 Ti (12GB VRAM)',
-  'RAM: 32GB DDR5 5600MHz',
-  'Storage: NVMe SSD 1TB (ext4 /dev/nvme0n1p2)',
-  'SQLite database file: /var/lib/bernos/bernos.db loaded.',
-  'Starting system services... OK',
-  'Network: Connected to gateway 192.168.1.1 (DNS: 1.1.1.1)',
-  'Loading Noctalia DE graphics shell...',
-  'Welcome to Bernardo\'s Portfolio OS!',
-  'Type "help" for a list of available commands.',
-  '-------------------------------------------------------'
-]
-
 const runBootSequence = async () => {
-  for (let i = 0; i < bootLines.length; i++) {
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 30))
-    terminalHistory.value.push({ type: 'boot', text: bootLines[i] })
-    scrollToBottom()
-  }
+  const d = new Date()
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const timeStr = d.toTimeString().split(' ')[0]
+  const dateStr = `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()} ${timeStr}`
+
+  terminalHistory.value.push({
+    type: 'output',
+    text: `Last login: ${dateStr} on ttys001`
+  })
   isBooting.value = false
   printNeofetch()
   scrollToBottom()
+  nextTick(() => {
+    if (inputField.value) inputField.value.focus()
+  })
 }
 
 const printNeofetch = () => {
   terminalHistory.value.push({ type: 'neofetch', text: '' })
-  terminalHistory.value.push({ type: 'output', text: '\nSistema pronto. Digite \'help\' para ver os comandos.' })
+  terminalHistory.value.push({ type: 'output', text: '\nDigite \'help\' para ver a lista de comandos disponíveis.' })
 }
 
 const scrollToBottom = () => {
@@ -129,6 +176,29 @@ const focusTerminalInput = () => {
 const handleGlobalKeydown = (e: KeyboardEvent) => {
   if (windowStore.activeWindowId !== 'terminal') return
 
+  if (isHtopMode.value) {
+    if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape' || e.key === 'F10') {
+      e.preventDefault()
+      exitHtop()
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (selectedHtopRow.value < htopProcessList.value.length - 1) {
+        selectedHtopRow.value++
+      }
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (selectedHtopRow.value > 0) {
+        selectedHtopRow.value--
+      }
+      return
+    }
+    return
+  }
+
   if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return
 
   if (e.ctrlKey || e.metaKey || e.altKey) return
@@ -174,7 +244,7 @@ const handleCommand = async () => {
   
   // Handle password prompt input
   if (isSudoPrompt.value) {
-    terminalHistory.value.push({ type: 'input', text: `[sudo] password for guest: *******` })
+    terminalHistory.value.push({ type: 'input', text: `[sudo] password for bernardo: *******` })
     isSudoPrompt.value = false
     currentInput.value = ''
     if (sudoAction.value === 'apt-update') {
@@ -269,7 +339,7 @@ const handleCommand = async () => {
   }
 
   // Print user prompt
-  terminalHistory.value.push({ type: 'input', text: `guest@bernos:~$ ${cmd}` })
+  terminalHistory.value.push({ type: 'input', text: `bernardo@Bernardo-MacBook-Pro ~ % ${cmd}` })
 
   const commandNormalized = cmd.trim().toLowerCase().replace(/\s+/g, ' ')
   const args = commandNormalized.split(' ')
@@ -281,6 +351,7 @@ const handleCommand = async () => {
         type: 'output',
         text: `COMANDOS DISPONÍVEIS:
   - help             → lista todos os comandos
+  - htop             → monitor interativo de processos e recursos
   - whoami           → apresentação pessoal narrativa
   - skills           → stack técnico organizado por categoria
   - experience       → histórico profissional
@@ -298,13 +369,16 @@ Easter eggs:
   - vim portfolio     → abre o portfólio em um editor Vim interativo`
       })
       break
+    case 'htop':
+      enterHtopMode()
+      break
     case 'whoami':
       terminalHistory.value.push({
         type: 'output',
         text: `Bernardo Villanova de Santana
 DevOps | Cloud | Kubernetes | Docker | IaC | CI & CD | Node | Full Stack
 
-Olá, sou Bernardo, DevOps Engineer com mais de 4 anos de experiência prática em cloud computing, automação de infraestrutura e pipelines CI/CD, atuando principalmente com AWS, Terraform e Kubernetes.
+Olá, sou Bernardo, DevOps Engineer com mais de 5 anos de experiência prática em cloud computing, automação de infraestrutura e pipelines CI/CD, atuando principalmente com AWS, Terraform e Kubernetes.
 Tenho foco em construir e manter ambientes escaláveis, resilientes e seguros, utilizando boas práticas de infraestrutura como código (IaC) e automação de processos. Ao longo da minha trajetória, atuei na administração de ambientes críticos, melhoria contínua de pipelines e implementação de observabilidade para suporte à tomada de decisão e rápida resposta a incidentes.
 Também possuo conhecimento em Azure e Azure DevOps, ampliando minha visão multi-cloud. Tenho perfil analítico, colaborativo e orientado à melhoria contínua, sempre buscando aumentar a eficiência operacional, confiabilidade dos sistemas e maturidade da cultura DevOps.`
       })
@@ -634,12 +708,17 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (htopTimer) clearInterval(htopTimer)
   window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
 <template>
-  <div class="flex-grow flex flex-col font-mono text-sm leading-relaxed p-4 h-full bg-[#07000d]/95 relative overflow-hidden select-text select-text-safe" @click="focusTerminalInput">
+  <div
+    class="flex-grow flex flex-col font-mono text-sm leading-relaxed p-4 h-full relative overflow-hidden select-text select-text-safe transition-colors duration-300"
+    :class="windowStore.theme === 'light' ? 'bg-white text-zinc-950' : 'bg-[#18181c] text-zinc-100'"
+    @click="focusTerminalInput"
+  >
     <!-- Mock Vim editor -->
     <div v-if="isVimMode" class="flex-grow flex flex-col h-full text-gray-300 relative select-text">
       <div class="flex-grow overflow-y-auto pr-1 select-text leading-tight text-xs sm:text-sm">
@@ -683,44 +762,139 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Mock htop monitor -->
+    <div v-else-if="isHtopMode" class="flex-grow flex flex-col h-full text-zinc-200 font-mono text-xs select-text overflow-hidden">
+      <!-- Top: CPU meters & Memory meters -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2 border-b border-white/10 shrink-0">
+        <!-- Left: Cores 0-3 & Mem -->
+        <div class="flex flex-col gap-1">
+          <div v-for="m in htopCoresLeft" :key="m.core" class="flex items-center gap-1.5 text-[11px]">
+            <span class="w-3 text-cyan-400 font-bold text-right">{{ m.core }}</span>
+            <span class="text-zinc-500">[</span>
+            <div class="flex-grow h-2 bg-white/5 rounded-xs overflow-hidden">
+              <div class="h-full bg-emerald-400 rounded-xs transition-all duration-300" :style="{ width: `${m.pct}%` }"></div>
+            </div>
+            <span class="text-zinc-500">]</span>
+            <span class="w-9 text-right text-zinc-300">{{ m.pct }}%</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] pt-1">
+            <span class="w-7 text-sky-400 font-bold">Mem</span>
+            <span class="text-zinc-500">[</span>
+            <div class="flex-grow h-2 bg-white/5 rounded-xs overflow-hidden">
+              <div class="h-full bg-sky-400 rounded-xs" style="width: 28%"></div>
+            </div>
+            <span class="text-zinc-500">]</span>
+            <span class="text-zinc-300 text-[10px]">1.24G/16.0G</span>
+          </div>
+        </div>
+
+        <!-- Right: Cores 4-7 & Tasks/Uptime -->
+        <div class="flex flex-col gap-1">
+          <div v-for="m in htopCoresRight" :key="m.core" class="flex items-center gap-1.5 text-[11px]">
+            <span class="w-3 text-cyan-400 font-bold text-right">{{ m.core }}</span>
+            <span class="text-zinc-500">[</span>
+            <div class="flex-grow h-2 bg-white/5 rounded-xs overflow-hidden">
+              <div class="h-full bg-emerald-400 rounded-xs transition-all duration-300" :style="{ width: `${m.pct}%` }"></div>
+            </div>
+            <span class="text-zinc-500">]</span>
+            <span class="w-9 text-right text-zinc-300">{{ m.pct }}%</span>
+          </div>
+          <div class="flex flex-col text-[10px] text-zinc-400 pt-0.5 leading-tight">
+            <div>Tasks: <strong class="text-white">48</strong>, 8 thr; <strong class="text-emerald-400">2 running</strong></div>
+            <div>Load average: <strong class="text-white">0.14 0.10 0.05</strong></div>
+            <div>Uptime: <strong class="text-amber-300">~5 anos de experiência</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle: Process list (table) -->
+      <div class="flex-grow overflow-y-auto py-1 font-mono text-[11px]">
+        <div class="bg-emerald-800 text-black font-bold px-1.5 py-0.5 grid grid-cols-12 text-[10px] select-none uppercase">
+          <span class="col-span-1">PID</span>
+          <span class="col-span-2">USER</span>
+          <span class="col-span-1">PRI</span>
+          <span class="col-span-1">NI</span>
+          <span class="col-span-1">VIRT</span>
+          <span class="col-span-1">RES</span>
+          <span class="col-span-1">CPU%</span>
+          <span class="col-span-1">MEM%</span>
+          <span class="col-span-1">TIME+</span>
+          <span class="col-span-2">Command</span>
+        </div>
+        <div
+          v-for="(p, idx) in htopProcessList"
+          :key="p.pid"
+          class="px-1.5 py-0.5 grid grid-cols-12 text-[11px] hover:bg-white/5 cursor-pointer font-mono"
+          :class="idx === selectedHtopRow ? 'bg-sky-900/60 text-white' : 'text-zinc-300'"
+          @click="selectedHtopRow = idx"
+        >
+          <span class="col-span-1 text-zinc-400">{{ p.pid }}</span>
+          <span class="col-span-2 text-zinc-400">{{ p.user }}</span>
+          <span class="col-span-1 text-zinc-500">20</span>
+          <span class="col-span-1 text-zinc-500">0</span>
+          <span class="col-span-1 text-zinc-400">{{ p.virt }}</span>
+          <span class="col-span-1 text-zinc-400">{{ p.res }}</span>
+          <span class="col-span-1 font-bold text-emerald-400">{{ p.cpu }}</span>
+          <span class="col-span-1 text-sky-400">{{ p.mem }}</span>
+          <span class="col-span-1 text-zinc-400">{{ p.time }}</span>
+          <span class="col-span-2 text-white truncate font-bold">{{ p.command }}</span>
+        </div>
+      </div>
+
+      <!-- Bottom: htop function keys footer -->
+      <div class="bg-black/80 border-t border-white/10 pt-1 mt-auto flex items-center justify-between text-[11px] select-none">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="px-1.5 py-0.5 bg-white/10 text-white rounded-xs">F1 Help</span>
+          <span class="px-1.5 py-0.5 bg-white/10 text-white rounded-xs">F2 Setup</span>
+          <span class="px-1.5 py-0.5 bg-white/10 text-white rounded-xs">F3 Search</span>
+          <span class="px-1.5 py-0.5 bg-white/10 text-white rounded-xs">F5 Tree</span>
+          <button @click="exitHtop" class="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded-xs font-bold transition cursor-pointer">
+            F10 Quit (q)
+          </button>
+        </div>
+        <span class="text-zinc-400 text-[10px]">Pressione <kbd class="text-amber-300 font-bold">q</kbd> para sair</span>
+      </div>
+    </div>
+
     <!-- Boot and Command history screen -->
     <div v-else ref="terminalBody" class="flex-grow overflow-y-auto pr-1 flex flex-col gap-1 select-text">
       
       <div v-for="(item, idx) in terminalHistory" :key="idx" class="whitespace-pre-wrap select-text">
         <template v-if="item.type === 'boot'">
-          <span class="text-gray-400 select-text">{{ item.text }}</span>
+          <span :class="windowStore.theme === 'light' ? 'text-zinc-500' : 'text-gray-400'" class="select-text">{{ item.text }}</span>
         </template>
         <template v-else-if="item.type === 'input'">
-          <template v-if="item.text.startsWith('guest@bernos:~$ ')">
-            <span class="text-green-400 font-semibold select-text">guest@bernos</span>
-            <span class="text-gray-300 select-text">:</span>
-            <span class="text-blue-400 font-semibold select-text">~</span>
-            <span class="text-gray-300 select-text">$ </span>
-            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(16) }}</span>
+          <template v-if="item.text.startsWith('bernardo@Bernardo-MacBook-Pro ~ % ')">
+            <span class="font-semibold select-text" :class="windowStore.theme === 'light' ? 'text-zinc-950' : 'text-white'">bernardo@Bernardo-MacBook-Pro</span>
+            <span class="select-text" :class="windowStore.theme === 'light' ? 'text-zinc-500' : 'text-zinc-400'"> ~ % </span>
+            <span class="select-text font-normal" :class="windowStore.theme === 'light' ? 'text-zinc-900' : 'text-zinc-200'">{{ item.text.substring(34) }}</span>
           </template>
-          <template v-else-if="item.text.startsWith('[sudo] password for guest: ')">
-            <span class="text-gray-300 font-semibold select-text">[sudo] password for guest: </span>
-            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(27) }}</span>
+          <template v-else-if="item.text.startsWith('[sudo] password for bernardo: ')">
+            <span class="font-semibold select-text" :class="windowStore.theme === 'light' ? 'text-zinc-600' : 'text-zinc-300'">[sudo] password for bernardo: </span>
+            <span class="select-text font-normal" :class="windowStore.theme === 'light' ? 'text-zinc-900' : 'text-zinc-200'">{{ item.text.substring(30) }}</span>
           </template>
           <template v-else-if="item.text.startsWith('  Enter a value: ')">
-            <span class="text-gray-300 font-semibold select-text">  Enter a value: </span>
-            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(17) }}</span>
+            <span class="font-semibold select-text" :class="windowStore.theme === 'light' ? 'text-zinc-600' : 'text-zinc-300'">  Enter a value: </span>
+            <span class="select-text font-normal" :class="windowStore.theme === 'light' ? 'text-zinc-900' : 'text-zinc-200'">{{ item.text.substring(17) }}</span>
           </template>
           <template v-else-if="item.text.startsWith('  Enter \'yes\' to confirm: ')">
-            <span class="text-gray-300 font-semibold select-text">  Enter 'yes' to confirm: </span>
-            <span class="text-gray-200 select-text font-normal">{{ item.text.substring(26) }}</span>
+            <span class="font-semibold select-text" :class="windowStore.theme === 'light' ? 'text-zinc-600' : 'text-zinc-300'">  Enter 'yes' to confirm: </span>
+            <span class="select-text font-normal" :class="windowStore.theme === 'light' ? 'text-zinc-900' : 'text-zinc-200'">{{ item.text.substring(26) }}</span>
           </template>
           <template v-else>
-            <span class="text-gray-200 select-text font-normal">{{ item.text }}</span>
+            <span class="select-text font-normal" :class="windowStore.theme === 'light' ? 'text-zinc-900' : 'text-zinc-200'">{{ item.text }}</span>
           </template>
         </template>
         <template v-else-if="item.type === 'output'">
-          <span class="text-gray-300 select-text">{{ item.text }}</span>
+          <span class="select-text" :class="windowStore.theme === 'light' ? 'text-zinc-800' : 'text-gray-300'">{{ item.text }}</span>
         </template>
         <template v-else-if="item.type === 'neofetch'">
           <div class="flex flex-col lg:flex-row gap-4 lg:gap-8 py-2 select-text text-[11px] sm:text-xs leading-normal font-mono shrink-0 overflow-x-auto">
-            <!-- BERNOS ASCII Art -->
-            <pre class="text-brand-orange font-bold select-text leading-tight shrink-0 font-mono">
+            <!-- BERNOS ASCII Art Banner -->
+            <pre
+              class="font-extrabold select-text leading-tight shrink-0 font-mono transition-colors duration-300"
+              :class="windowStore.theme === 'light' ? 'text-amber-600' : 'text-amber-400'"
+            >
   ██████╗ ███████╗██████╗ ███╗   ██╗ ██████╗ ███████╗
   ██╔══██╗██╔════╝██╔══██╗████╗  ██║██╔═══██╗██╔════╝
   ██████╔╝█████╗  ██████╔╝██╔██╗ ██║██║   ██║███████╗
@@ -728,46 +902,49 @@ onUnmounted(() => {
   ██████╔╝███████╗██║  ██║██║ ╚████║╚██████╔╝███████║
   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝</pre>
             <!-- Stats -->
-            <div class="flex flex-col gap-0.5 select-text font-mono text-gray-300">
-              <div><span class="text-brand-orange-light font-semibold">name:</span> Bernardo Villanova</div>
-              <div><span class="text-brand-orange-light font-semibold">role:</span> DevOps Engineer · Pleno</div>
-              <div><span class="text-brand-orange-light font-semibold">stack:</span> K8s · AWS · Terraform · CI/CD</div>
-              <div><span class="text-brand-orange-light font-semibold">os:</span> bernOS (baseado em CachyOS)</div>
-              <div><span class="text-brand-orange-light font-semibold">uptime:</span> ~4 anos de experiência</div>
-              <div><span class="text-brand-orange-light font-semibold">shell:</span> bash + zsh + vim btw</div>
-              <div><span class="text-brand-orange-light font-semibold">github:</span> github.com/bernardovillanova</div>
-              <div class="flex flex-wrap gap-1 mt-1 items-center">
+            <div class="flex flex-col gap-0.5 select-text font-mono" :class="windowStore.theme === 'light' ? 'text-zinc-800' : 'text-gray-300'">
+              <div><span class="font-bold text-sky-500">bernardo@Bernardo-MacBook-Pro</span></div>
+              <div :class="windowStore.theme === 'light' ? 'text-zinc-400' : 'text-zinc-600'">--------------------------------</div>
+              <div><span class="font-semibold text-sky-500">os:</span> bernOS (macOS Sequoia Edition / Darwin 24.0.0)</div>
+              <div><span class="font-semibold text-sky-500">host:</span> MacBook Pro (16-inch, Nov 2024)</div>
+              <div><span class="font-semibold text-sky-500">role:</span> Analista DevOps · Casa do Construtor</div>
+              <div><span class="font-semibold text-sky-500">stack:</span> Kubernetes · AWS · Terraform · CI/CD</div>
+              <div><span class="font-semibold text-sky-500">shell:</span> zsh 5.9 (x86_64-apple-darwin24.0)</div>
+              <div><span class="font-semibold text-sky-500">uptime:</span> ~5 anos de experiência</div>
+              <div><span class="font-semibold text-sky-500">github:</span> github.com/bernardovillanova</div>
+              <div class="flex flex-wrap gap-1 mt-1.5 items-center">
+                <span class="text-black dark:text-white font-bold">████</span>
                 <span class="text-red-500 font-bold">████</span>
                 <span class="text-green-500 font-bold">████</span>
                 <span class="text-yellow-500 font-bold">████</span>
                 <span class="text-blue-500 font-bold">████</span>
-                <span class="text-pink-500 font-bold">████</span>
-                <span class="text-brand-orange-light font-semibold ml-2">coffee:</span> unlimited ☕
+                <span class="text-purple-500 font-bold">████</span>
+                <span class="text-cyan-500 font-bold">████</span>
+                <span class="ml-2 text-[10px] font-semibold" :class="windowStore.theme === 'light' ? 'text-amber-700' : 'text-amber-300'">coffee: unlimited ☕</span>
               </div>
             </div>
           </div>
         </template>
         <template v-else-if="item.type === 'error'">
-          <span class="text-red-400 select-text">{{ item.text }}</span>
+          <span class="select-text" :class="windowStore.theme === 'light' ? 'text-red-600' : 'text-red-400'">{{ item.text }}</span>
         </template>
       </div>
 
       <!-- Current Input Prompt -->
       <div v-if="!isBooting" class="flex items-center gap-1 mt-2 shrink-0 select-text w-full">
         <template v-if="isSudoPrompt">
-          <span class="text-gray-300 font-semibold shrink-0 select-text">[sudo] password for guest: </span>
+          <span class="font-semibold shrink-0 select-text" :class="windowStore.theme === 'light' ? 'text-zinc-700' : 'text-gray-300'">[sudo] password for bernardo: </span>
         </template>
         <template v-else>
-          <span class="text-green-400 font-semibold shrink-0 select-text">guest@bernos</span>
-          <span class="text-gray-300 shrink-0 select-text">:</span>
-          <span class="text-blue-400 font-semibold shrink-0 select-text">~</span>
-          <span class="text-gray-300 shrink-0 select-text">$</span>
+          <span class="font-semibold shrink-0 select-text" :class="windowStore.theme === 'light' ? 'text-zinc-950' : 'text-white'">bernardo@Bernardo-MacBook-Pro</span>
+          <span class="shrink-0 select-text" :class="windowStore.theme === 'light' ? 'text-zinc-500' : 'text-zinc-400'">~ %</span>
         </template>
-        <div class="relative flex-grow flex items-center select-text ml-1">
+        <div class="relative flex-grow flex items-center select-text ml-1.5">
           <input
             v-model="currentInput"
             :type="isSudoPrompt ? 'password' : 'text'"
-            class="w-full bg-transparent text-gray-200 outline-none border-none p-0 select-text select-text-safe font-mono"
+            class="w-full bg-transparent outline-none border-none p-0 select-text select-text-safe font-mono"
+            :class="windowStore.theme === 'light' ? 'text-zinc-950' : 'text-gray-100'"
             autofocus
             @keydown.enter="handleCommand"
             @keydown="handleKeydown"
