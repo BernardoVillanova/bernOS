@@ -4,8 +4,6 @@ import { useWindowStore } from '../../stores/windowStore'
 import {
   Trash2,
   FileText,
-  FileCode,
-  Image,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -13,12 +11,11 @@ import {
   List as ListIcon,
   X,
   Eye,
-  RotateCcw,
-  AlertCircle,
+  Info,
   Folder,
   FolderHeart,
   Clock,
-  Sparkles
+  ArrowLeft
 } from 'lucide-vue-next'
 
 const store = useWindowStore()
@@ -30,7 +27,6 @@ interface TrashItem {
   type: string
   size: string
   date: string
-  iconType: 'md' | 'sh' | 'img'
   content: string
 }
 
@@ -42,53 +38,15 @@ const trashItems = ref<TrashItem[]>([
     type: 'Documento Markdown',
     size: '2.4 KB',
     date: '10 de out. de 2026',
-    iconType: 'md',
-    content: `# alexandre.ia (Protótipo Arquivado)
+    content: `# alexandre.ia
 
-Uma ideia inicial de agente inteligente para gerenciar biblioteca pessoal de livros, estatísticas de leitura e integração com Skoob.
-
-## Motivo do Descarte:
-- Priorização total na construção e sustentação do bernOS e das automações de infraestrutura corporativa na Casa do Construtor.
-- Pode ser revivido futuramente como um microsserviço conteinerizado.`
-  },
-  {
-    id: 'deploy-sh',
-    name: 'antigo-deploy.sh',
-    ext: '.sh',
-    type: 'Script Shell Unix',
-    size: '1.2 KB',
-    date: '08 de out. de 2026',
-    iconType: 'sh',
-    content: `#!/usr/bin/env bash
-# [DEPRECATED] Script legado de deploy manual via SSH
-# Substituído com sucesso pelo workflow automatizado do GitHub Actions com Docker e Amazon ECR!
-
-set -e
-echo "Aviso: Este script manual não deve mais ser executado."
-echo "Use sempre: git push origin main"`
-  },
-  {
-    id: 'draft-neon',
-    name: 'rascunho-logo-neon.svg',
-    ext: '.svg',
-    type: 'Imagem Vetorial SVG',
-    size: '4.8 KB',
-    date: '02 de out. de 2026',
-    iconType: 'img',
-    content: `<!-- [DESCARTADO] Rascunho inicial de logo com excesso de brilho neon artificial.
-     Substituído pelos ícones vetoriais limpos e elegantes no padrão nativo Apple macOS Sequoia. -->
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="50" cy="50" r="45" fill="none" stroke="#ff007f" stroke-width="4"/>
-  <text x="50" y="55" fill="#00f3ff" font-size="14" text-anchor="middle">NEON_DEPRECATED</text>
-</svg>`
+Um projeto para gerenciar sua biblioteca de livros.`
   }
 ])
 
-const isEmptied = ref(false)
 const selectedItemId = ref<string | null>(null)
-const previewItem = ref<TrashItem | null>(null)
-const showEmptyDialog = ref(false)
-const showNotification = ref<string | null>(null)
+const isPreviewOpen = ref(false)
+const showEmptyToast = ref(false)
 const viewMode = ref<'grid' | 'list'>('grid')
 const searchQuery = ref('')
 
@@ -97,7 +55,6 @@ const selectedItem = computed(() => {
 })
 
 const filteredItems = computed(() => {
-  if (isEmptied.value) return []
   if (!searchQuery.value.trim()) return trashItems.value
   const q = searchQuery.value.toLowerCase().trim()
   return trashItems.value.filter(item =>
@@ -106,65 +63,11 @@ const filteredItems = computed(() => {
   )
 })
 
-const totalSize = computed(() => {
-  if (isEmptied.value) return '0 KB'
-  return '8.4 KB'
-})
-
-const selectItem = (id: string) => {
-  selectedItemId.value = id
-}
-
-const openPreview = (item: TrashItem) => {
-  previewItem.value = item
-}
-
-const closePreview = () => {
-  previewItem.value = null
-}
-
-const restoreItem = (item: TrashItem) => {
-  trashItems.value = trashItems.value.filter(i => i.id !== item.id)
-  if (selectedItemId.value === item.id) selectedItemId.value = null
-  if (previewItem.value?.id === item.id) previewItem.value = null
-  
-  showNotification.value = `"${item.name}" foi restaurado com sucesso para a pasta de origem!`
+const triggerEmptyTrash = () => {
+  showEmptyToast.value = true
   setTimeout(() => {
-    showNotification.value = null
-  }, 3000)
-}
-
-const restoreAll = () => {
-  isEmptied.value = false
-  if (trashItems.value.length === 0) {
-    trashItems.value = [
-      {
-        id: 'alexandre',
-        name: 'alexandre.ia.md',
-        ext: '.md',
-        type: 'Documento Markdown',
-        size: '2.4 KB',
-        date: '10 de out. de 2026',
-        iconType: 'md',
-        content: `# alexandre.ia (Protótipo Arquivado)\n\nUma ideia inicial de agente inteligente para gerenciar biblioteca pessoal de livros.`
-      }
-    ]
-  }
-  showNotification.value = 'Itens da Lixeira restaurados!'
-  setTimeout(() => {
-    showNotification.value = null
-  }, 2500)
-}
-
-const confirmEmptyTrash = () => {
-  showEmptyDialog.value = false
-  isEmptied.value = true
-  selectedItemId.value = null
-  previewItem.value = null
-  showNotification.value = 'Lixeira esvaziada! Todos os itens foram permanentemente apagados.'
-  setTimeout(() => {
-    showNotification.value = null
-  }, 3500)
+    showEmptyToast.value = false
+  }, 3200)
 }
 </script>
 
@@ -257,31 +160,17 @@ const confirmEmptyTrash = () => {
           />
         </div>
 
-        <!-- macOS Style Empty Trash Button -->
+        <!-- macOS Style Empty Trash Button (Protects alexandre.ia note) -->
         <button
-          v-if="!isEmptied && trashItems.length > 0"
-          @click="showEmptyDialog = true"
+          @click="triggerEmptyTrash"
           class="px-3 py-1 rounded-lg border text-xs font-medium transition cursor-pointer shadow-2xs flex items-center gap-1.5"
           :class="store.theme === 'light'
             ? 'bg-white hover:bg-zinc-100 text-zinc-700 border-zinc-300'
             : 'bg-white/5 hover:bg-white/10 text-zinc-200 border-white/15'"
-          title="Esvaziar todos os itens da Lixeira"
+          title="Esvaziar Lixeira"
         >
           <Trash2 class="w-3.5 h-3.5 text-zinc-400" />
-          <span>Esvaziar...</span>
-        </button>
-
-        <button
-          v-else
-          @click="restoreAll"
-          class="px-3 py-1 rounded-lg border text-xs font-medium transition cursor-pointer shadow-2xs flex items-center gap-1.5"
-          :class="store.theme === 'light'
-            ? 'bg-sky-50 text-sky-700 border-sky-300 hover:bg-sky-100'
-            : 'bg-sky-500/10 text-sky-400 border-sky-500/20 hover:bg-sky-500/20'"
-          title="Restaurar itens da Lixeira"
-        >
-          <RotateCcw class="w-3.5 h-3.5" />
-          <span>Restaurar Itens</span>
+          <span>Esvaziar Lixeira</span>
         </button>
       </div>
     </div>
@@ -300,34 +189,24 @@ const confirmEmptyTrash = () => {
 
       <div v-if="selectedItem" class="flex items-center gap-2">
         <button
-          @click.stop="openPreview(selectedItem)"
+          @click.stop="isPreviewOpen = true"
           class="text-sky-500 hover:underline flex items-center gap-1 cursor-pointer"
         >
           <Eye class="w-3 h-3" />
-          <span>Visualizar</span>
-        </button>
-        <span>·</span>
-        <button
-          @click.stop="restoreItem(selectedItem)"
-          class="text-sky-500 hover:underline flex items-center gap-1 cursor-pointer"
-        >
-          <RotateCcw class="w-3 h-3" />
-          <span>Colocar de Volta</span>
+          <span>Abrir Nota</span>
         </button>
       </div>
     </div>
 
-    <!-- Toast Notification Banner -->
-    <Transition name="fade">
+    <!-- Notification Toast when trying to empty (Preserves alexandre.ia note) -->
+    <Transition name="slide-down">
       <div
-        v-if="showNotification"
-        class="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl border shadow-xl text-xs font-medium backdrop-blur-xl flex items-center gap-2"
-        :class="store.theme === 'light'
-          ? 'bg-white/95 border-black/10 text-zinc-800 shadow-black/10'
-          : 'bg-[#22222b]/95 border-white/10 text-zinc-100 shadow-black/50'"
+        v-if="showEmptyToast"
+        class="bg-amber-500/10 border-b border-amber-500/25 px-4 py-2 flex items-center gap-2 text-xs font-medium shrink-0 z-20"
+        :class="store.theme === 'light' ? 'text-amber-800 bg-amber-50' : 'text-amber-300 bg-amber-500/10'"
       >
-        <Sparkles class="w-4 h-4 text-amber-500 shrink-0" />
-        <span>{{ showNotification }}</span>
+        <Info class="w-4 h-4 text-amber-500 shrink-0" />
+        <span>Este protótipo está arquivado com carinho e não será excluído! ☕</span>
       </div>
     </Transition>
 
@@ -376,55 +255,59 @@ const confirmEmptyTrash = () => {
         <div class="flex flex-col gap-1 mt-1">
           <span class="px-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Tags</span>
           <div class="flex items-center gap-2 px-2 py-1 text-xs text-zinc-400">
-            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            <span>Rascunhos</span>
-          </div>
-          <div class="flex items-center gap-2 px-2 py-1 text-xs text-zinc-400">
-            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-            <span>DevOps Legado</span>
-          </div>
-          <div class="flex items-center gap-2 px-2 py-1 text-xs text-zinc-400">
             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
             <span>Ideias Arquivadas</span>
           </div>
         </div>
       </div>
 
-      <!-- Main File Browser Area -->
+      <!-- Main File Browser Area (or Document Viewer) -->
       <div class="flex-grow flex flex-col min-h-0 min-w-0 overflow-y-auto p-4 sm:p-6">
         
-        <!-- Empty State -->
+        <!-- Viewer Pane when item is open -->
         <div
-          v-if="filteredItems.length === 0"
-          class="h-full flex flex-col items-center justify-center text-center gap-3 p-6 select-none my-auto"
+          v-if="isPreviewOpen"
+          class="h-full flex flex-col border rounded-xl overflow-hidden shadow-lg transition-colors"
+          :class="store.theme === 'light'
+            ? 'bg-white border-zinc-200'
+            : 'bg-[#181922] border-white/10'"
         >
+          <!-- Viewer Header -->
           <div
-            class="w-20 h-20 rounded-2xl flex items-center justify-center border shadow-xs"
+            class="h-10 border-b px-4 flex items-center justify-between select-none shrink-0"
             :class="store.theme === 'light'
-              ? 'bg-zinc-50 border-black/10 text-zinc-400'
-              : 'bg-white/5 border-white/10 text-zinc-500'"
+              ? 'bg-[#f5f5f7] border-zinc-200 text-zinc-800'
+              : 'bg-[#22232c] border-white/10 text-zinc-200'"
           >
-            <Trash2 class="w-10 h-10 stroke-[1.5]" />
+            <div class="flex items-center gap-2 text-xs font-mono">
+              <button
+                @click="isPreviewOpen = false"
+                class="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer flex items-center gap-1 text-[11px]"
+              >
+                <ArrowLeft class="w-3.5 h-3.5" />
+                <span>Voltar</span>
+              </button>
+              <span class="opacity-40">|</span>
+              <span class="font-bold">alexandre.ia.md</span>
+            </div>
+
+            <button
+              @click="isPreviewOpen = false"
+              class="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-white cursor-pointer"
+            >
+              <X class="w-4 h-4" />
+            </button>
           </div>
-          <div class="flex flex-col gap-1 max-w-sm">
-            <h3 class="text-sm font-bold" :class="store.theme === 'light' ? 'text-zinc-900' : 'text-white'">
-              A Lixeira está vazia
-            </h3>
-            <p class="text-xs text-zinc-400 leading-relaxed">
-              {{ isEmptied ? 'Todos os arquivos foram limpos com sucesso.' : 'Nenhum item encontrado nesta busca.' }}
+
+          <!-- Document Markdown Body (Clean, zero mention of AI) -->
+          <div class="flex-grow p-6 sm:p-8 overflow-y-auto font-sans text-xs sm:text-sm leading-relaxed select-text flex flex-col gap-3">
+            <h1 class="text-base sm:text-lg font-bold" :class="store.theme === 'light' ? 'text-zinc-950' : 'text-white'">
+              # alexandre.ia
+            </h1>
+            <p class="leading-relaxed" :class="store.theme === 'light' ? 'text-zinc-700' : 'text-zinc-300'">
+              Um projeto para gerenciar sua biblioteca de livros.
             </p>
           </div>
-          <button
-            v-if="isEmptied"
-            @click="restoreAll"
-            class="mt-2 px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer flex items-center gap-2"
-            :class="store.theme === 'light'
-              ? 'bg-white hover:bg-zinc-50 text-sky-600 border-zinc-200 shadow-2xs'
-              : 'bg-white/5 hover:bg-white/10 text-sky-400 border-white/10'"
-          >
-            <RotateCcw class="w-3.5 h-3.5" />
-            <span>Restaurar Arquivos de Exemplo</span>
-          </button>
         </div>
 
         <!-- GRID VIEW (Icon View Mode) -->
@@ -435,9 +318,9 @@ const confirmEmptyTrash = () => {
           <div
             v-for="item in filteredItems"
             :key="item.id"
-            @click.stop="selectItem(item.id)"
-            @dblclick="openPreview(item)"
-            class="group flex flex-col items-center p-3 rounded-xl border transition cursor-pointer text-center relative"
+            @click.stop="selectedItemId = item.id"
+            @dblclick="isPreviewOpen = true"
+            class="group flex flex-col items-center p-3.5 rounded-xl border transition cursor-pointer text-center relative"
             :class="selectedItemId === item.id
               ? (store.theme === 'light'
                 ? 'bg-sky-50 border-sky-300 ring-2 ring-sky-500/20'
@@ -456,13 +339,8 @@ const confirmEmptyTrash = () => {
               >
                 <!-- Top Extension Badge -->
                 <div class="flex items-center justify-between w-full">
-                  <span
-                    class="text-[9px] font-mono font-bold uppercase tracking-wider px-1 py-0.5 rounded"
-                    :class="item.iconType === 'md'
-                      ? 'bg-sky-500/20 text-sky-500'
-                      : (item.iconType === 'sh' ? 'bg-amber-500/20 text-amber-500' : 'bg-purple-500/20 text-purple-500')"
-                  >
-                    {{ item.ext.replace('.', '') }}
+                  <span class="text-[9px] font-mono font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-sky-500/20 text-sky-500">
+                    md
                   </span>
                   <!-- Folded Corner effect -->
                   <div class="w-3 h-3 border-b border-l rounded-bl-sm opacity-40"></div>
@@ -470,9 +348,7 @@ const confirmEmptyTrash = () => {
 
                 <!-- Center Icon -->
                 <div class="flex items-center justify-center my-auto">
-                  <FileText v-if="item.iconType === 'md'" class="w-6 h-6 text-sky-500" />
-                  <FileCode v-else-if="item.iconType === 'sh'" class="w-6 h-6 text-amber-500" />
-                  <Image v-else class="w-6 h-6 text-purple-500" />
+                  <FileText class="w-7 h-7 text-sky-500" />
                 </div>
 
                 <!-- Bottom Document Lines -->
@@ -522,17 +398,15 @@ const confirmEmptyTrash = () => {
           <div
             v-for="item in filteredItems"
             :key="item.id"
-            @click.stop="selectItem(item.id)"
-            @dblclick="openPreview(item)"
+            @click.stop="selectedItemId = item.id"
+            @dblclick="isPreviewOpen = true"
             class="grid grid-cols-12 px-4 py-2.5 text-xs items-center cursor-pointer transition-colors"
             :class="selectedItemId === item.id
               ? (store.theme === 'light' ? 'bg-sky-50 text-sky-900' : 'bg-sky-500/20 text-white')
               : (store.theme === 'light' ? 'hover:bg-zinc-50' : 'hover:bg-white/[0.03]')"
           >
             <div class="col-span-6 sm:col-span-5 flex items-center gap-2.5 min-w-0 pr-2">
-              <FileText v-if="item.iconType === 'md'" class="w-4 h-4 text-sky-500 shrink-0" />
-              <FileCode v-else-if="item.iconType === 'sh'" class="w-4 h-4 text-amber-500 shrink-0" />
-              <Image v-else class="w-4 h-4 text-purple-500 shrink-0" />
+              <FileText class="w-4 h-4 text-sky-500 shrink-0" />
               <span class="truncate font-medium">{{ item.name }}</span>
             </div>
             <div class="col-span-3 sm:col-span-3 text-[11px] text-zinc-400 flex items-center gap-1">
@@ -567,139 +441,22 @@ const confirmEmptyTrash = () => {
       </div>
 
       <div class="font-medium">
-        {{ filteredItems.length }} {{ filteredItems.length === 1 ? 'item' : 'itens' }}, {{ totalSize }} disponíveis
+        1 item, 2.4 KB disponíveis
       </div>
     </div>
-
-    <!-- macOS QUICK LOOK MODAL (Visualização Rápida) -->
-    <Transition name="fade">
-      <div
-        v-if="previewItem"
-        class="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
-        @click.self="closePreview"
-      >
-        <div
-          class="w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transition-all"
-          :class="store.theme === 'light'
-            ? 'bg-white border-black/15 text-zinc-900'
-            : 'bg-[#1c1d25] border-white/15 text-zinc-100'"
-        >
-          <!-- Quick Look Header -->
-          <div
-            class="h-10 px-4 border-b flex items-center justify-between select-none shrink-0"
-            :class="store.theme === 'light' ? 'bg-[#f5f5f7] border-black/10' : 'bg-[#252530] border-white/10'"
-          >
-            <div class="flex items-center gap-2 text-xs font-semibold truncate">
-              <Eye class="w-3.5 h-3.5 text-sky-500" />
-              <span class="truncate">{{ previewItem.name }}</span>
-            </div>
-            
-            <div class="flex items-center gap-1.5">
-              <button
-                @click="restoreItem(previewItem)"
-                class="px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer border flex items-center gap-1"
-                :class="store.theme === 'light'
-                  ? 'bg-white hover:bg-zinc-100 border-zinc-300 text-zinc-700'
-                  : 'bg-white/5 hover:bg-white/10 border-white/15 text-zinc-200'"
-                title="Restaurar este arquivo para sua pasta original"
-              >
-                <RotateCcw class="w-3 h-3" />
-                <span>Colocar de Volta</span>
-              </button>
-              <button
-                @click="closePreview"
-                class="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-white transition cursor-pointer"
-                title="Fechar"
-              >
-                <X class="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Look Content Preview -->
-          <div class="flex-grow p-5 overflow-y-auto font-mono text-xs leading-relaxed select-text flex flex-col gap-3">
-            <div class="flex items-center justify-between text-[11px] text-zinc-400 pb-2 border-b border-black/5 dark:border-white/5">
-              <span>{{ previewItem.type }}</span>
-              <span>{{ previewItem.size }} · {{ previewItem.date }}</span>
-            </div>
-            <pre class="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed p-3 rounded-xl border bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5">{{ previewItem.content }}</pre>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- macOS NATIVE EMPTY TRASH CONFIRMATION SHEET -->
-    <Transition name="sheet">
-      <div
-        v-if="showEmptyDialog"
-        class="absolute inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-start justify-center pt-8 px-4"
-        @click.self="showEmptyDialog = false"
-      >
-        <div
-          class="w-full max-w-sm rounded-2xl border p-5 shadow-2xl flex flex-col items-center text-center gap-3.5 backdrop-blur-2xl transition-all"
-          :class="store.theme === 'light'
-            ? 'bg-white/95 border-black/15 text-zinc-900 shadow-black/20'
-            : 'bg-[#1e1e26]/95 border-white/15 text-white shadow-black/60'"
-        >
-          <!-- Trash Alert Icon -->
-          <div class="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
-            <AlertCircle class="w-6 h-6" />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <h3 class="text-sm font-bold tracking-tight">
-              Tem certeza de que deseja esvaziar a Lixeira?
-            </h3>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-              Os itens contidos na Lixeira serão excluídos permanentemente do bernOS. Esta operação não pode ser desfeita.
-            </p>
-          </div>
-
-          <!-- Buttons: Cancelar & Esvaziar -->
-          <div class="flex items-center gap-2.5 w-full pt-1">
-            <button
-              @click="showEmptyDialog = false"
-              class="flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer"
-              :class="store.theme === 'light'
-                ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-700'
-                : 'bg-white/5 hover:bg-white/10 border-white/15 text-zinc-300'"
-            >
-              Cancelar
-            </button>
-            <button
-              @click="confirmEmptyTrash"
-              class="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
-            >
-              Esvaziar Lixeira
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
 
   </div>
 </template>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.fade-enter-from,
-.fade-leave-to {
+.slide-down-enter-from,
+.slide-down-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
-}
-
-.sheet-enter-active,
-.sheet-leave-active {
-  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sheet-enter-from,
-.sheet-leave-to {
-  opacity: 0;
-  transform: translateY(-20px) scale(0.96);
+  transform: translateY(-10px);
 }
 </style>
