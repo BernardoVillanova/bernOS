@@ -164,10 +164,10 @@ export const useWindowStore = defineStore('window', {
         zIndex: 1,
         x: 200,
         y: 120,
-        width: 680,
-        height: 440,
-        minWidth: 460,
-        minHeight: 320,
+        width: 760,
+        height: 480,
+        minWidth: 500,
+        minHeight: 350,
       }
     ] as WindowState[],
     maxZIndex: 10,
@@ -315,6 +315,9 @@ export const useWindowStore = defineStore('window', {
         } else if (id === 'settings') {
           win.width = Math.max(win.width, 820)
           win.height = Math.max(win.height, 560)
+        } else if (id === 'trash') {
+          win.width = Math.max(win.width, 760)
+          win.height = Math.max(win.height, 480)
         }
         win.isOpen = true
         win.isMinimized = false
