@@ -451,7 +451,15 @@ const server = Bun.serve({
     // Serve static files in production if path doesn't start with /api and not /health
     if (!path.startsWith("/api") && path !== "/health") {
       try {
-        const filePath = join(__dirname, "dist", path === "/" ? "index.html" : path.slice(1));
+        const distDir = join(__dirname, "dist");
+        const relPath = path === "/" ? "index.html" : path.slice(1);
+        const filePath = join(distDir, relPath);
+
+        // Security check: strictly ensure filePath is within distDir
+        if (!filePath.startsWith(distDir + "/") && filePath !== join(distDir, "index.html")) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers });
+        }
+
         const file = Bun.file(filePath);
         if (await file.exists()) {
           const cacheControl = path.startsWith("/assets/")
@@ -462,7 +470,7 @@ const server = Bun.serve({
           });
         }
         // Fallback to index.html for SPA client-side routing
-        const indexFile = Bun.file(join(__dirname, "dist", "index.html"));
+        const indexFile = Bun.file(join(distDir, "index.html"));
         if (await indexFile.exists()) {
           return new Response(indexFile, {
             headers: { "Cache-Control": "no-cache" }
