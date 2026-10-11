@@ -136,14 +136,24 @@ onUnmounted(() => {
     ></div>
     <div v-else class="absolute inset-0 bg-radial from-zinc-900/40 via-[#070709] to-black pointer-events-none"></div>
 
-    <!-- Top Mobile Status Bar (iOS Native Style) -->
+    <!-- Top Mobile Status & Navigation Bar (Single Unified Native Bar) -->
     <div
-      class="h-10 shrink-0 flex justify-between items-center px-4 sm:px-6 text-[11px] font-semibold backdrop-blur-md z-[10000] border-b transition-colors duration-300"
+      class="h-10 shrink-0 flex justify-between items-center px-3.5 sm:px-6 text-[11px] font-semibold backdrop-blur-md z-[10000] border-b transition-colors duration-300"
       :class="store.theme === 'light'
-        ? 'bg-white/70 border-black/10 text-zinc-800'
-        : 'bg-black/40 border-white/[0.04] text-white'"
+        ? 'bg-white/80 border-black/10 text-zinc-800'
+        : 'bg-black/60 border-white/[0.08] text-white'"
     >
+      <!-- Left side: if activeApp, show Voltar button! If Home, show BernOS power! -->
+      <button
+        v-if="activeApp"
+        @click="closeActiveApp"
+        class="flex items-center gap-0.5 text-xs font-semibold text-sky-500 hover:text-sky-600 transition active:scale-95 cursor-pointer py-1"
+      >
+        <ChevronLeft class="w-4 h-4" />
+        <span>Voltar</span>
+      </button>
       <div
+        v-else
         class="flex items-center gap-1.5 cursor-pointer active:opacity-60"
         @click="store.openPowerDialog()"
         title="Menu de Energia"
@@ -152,12 +162,13 @@ onUnmounted(() => {
         <Power class="w-3 h-3 text-zinc-400" />
       </div>
 
-      <div class="font-medium tracking-wide">
-        {{ timeString }}
+      <!-- Center: if activeApp, show App Title! If Home, show Clock! -->
+      <div class="font-semibold tracking-wide text-xs truncate max-w-[170px]">
+        {{ activeApp ? activeApp.title : timeString }}
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <!-- Sun/Moon Theme Toggle -->
+      <!-- Right side: Theme toggle and Clock/Battery -->
+      <div class="flex items-center gap-2">
         <button
           @click="store.toggleTheme()"
           class="p-1 rounded-full transition active:scale-90"
@@ -167,11 +178,11 @@ onUnmounted(() => {
           <Moon v-else class="w-3.5 h-3.5 text-indigo-600" />
         </button>
 
-        <!-- Battery -->
-        <div class="flex items-center gap-1">
+        <span v-if="activeApp" class="text-[10px] font-mono text-zinc-400">{{ timeString }}</span>
+        <div v-else class="flex items-center gap-1">
           <span class="text-[10px] font-mono">100%</span>
           <div
-            class="w-5 h-2.5 border rounded-[3px] p-[1.5px] flex items-center"
+            class="w-4.5 h-2.5 border rounded-[3px] p-[1px] flex items-center"
             :class="store.theme === 'light' ? 'border-black/40' : 'border-white/40'"
           >
             <div class="h-full w-full bg-emerald-500 rounded-[1px]"></div>
@@ -235,31 +246,9 @@ onUnmounted(() => {
     <Transition name="app-slide">
       <div 
         v-if="activeApp" 
-        class="fixed inset-x-0 bottom-0 top-0 pt-10 z-[5000] flex flex-col overflow-hidden transition-colors duration-300"
+        class="fixed inset-x-0 bottom-0 top-10 z-[5000] flex flex-col overflow-hidden transition-colors duration-300"
         :class="store.theme === 'light' ? 'bg-[#fbfbfd]' : 'bg-[#0d0e12]'"
       >
-        <!-- App Titlebar/Header -->
-        <div
-          class="h-11 shrink-0 border-b backdrop-blur-xl flex justify-between items-center px-3.5 z-[50] transition-colors duration-300"
-          :class="store.theme === 'light'
-            ? 'bg-[#f5f5f7]/95 border-black/10 text-zinc-900'
-            : 'bg-[#090a0d]/90 border-white/[0.08] text-zinc-100'"
-        >
-          <button 
-            @click="closeActiveApp" 
-            class="flex items-center gap-0.5 text-xs font-medium text-sky-500 hover:text-sky-600 transition cursor-pointer active:opacity-70"
-          >
-            <ChevronLeft class="w-4 h-4" />
-            <span>Voltar</span>
-          </button>
-          
-          <span class="text-xs font-semibold tracking-wide">
-            {{ activeApp.title }}
-          </span>
-
-          <div class="w-12"></div>
-        </div>
-
         <!-- App View Area (Scrollable and responsive) -->
         <div class="flex-grow min-h-0 overflow-auto relative flex flex-col">
           <component :is="getAppComponent(activeApp.id)" />
@@ -267,12 +256,12 @@ onUnmounted(() => {
 
         <!-- iOS Style Bottom Home Indicator -->
         <div
-          class="h-5 shrink-0 flex items-center justify-center pb-1 z-[50] transition-colors duration-300"
+          class="h-4 shrink-0 flex items-center justify-center pb-0.5 z-[50] transition-colors duration-300"
           :class="store.theme === 'light' ? 'bg-[#f5f5f7]' : 'bg-[#090a0d]'"
         >
           <div 
             @click="closeActiveApp" 
-            class="w-32 h-1 rounded-full transition cursor-pointer active:opacity-100"
+            class="w-28 h-1 rounded-full transition cursor-pointer active:opacity-100"
             :class="store.theme === 'light' ? 'bg-black/30 hover:bg-black/50' : 'bg-white/30 hover:bg-white/50'"
           ></div>
         </div>

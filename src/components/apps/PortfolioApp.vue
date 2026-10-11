@@ -114,16 +114,23 @@ const scrollContainer = ref<HTMLElement | null>(null)
 const scrollOffset = ref(0)
 let sectionObserver: IntersectionObserver | null = null
 
+let isScrollTicking = false
 const handleContainerScroll = (e: Event) => {
   const target = e.target as HTMLElement
   if (!target) return
-  scrollOffset.value = target.scrollTop
+  if (!isScrollTicking) {
+    requestAnimationFrame(() => {
+      scrollOffset.value = target.scrollTop
 
-  // Boundary fallbacks for instant responsiveness
-  if (target.scrollTop <= 20) {
-    activeSectionIndex.value = 0
-  } else if (target.scrollTop + target.clientHeight >= target.scrollHeight - 30) {
-    activeSectionIndex.value = sectionIds.length - 1
+      // Boundary fallbacks for instant responsiveness
+      if (target.scrollTop <= 20) {
+        activeSectionIndex.value = 0
+      } else if (target.scrollTop + target.clientHeight >= target.scrollHeight - 30) {
+        activeSectionIndex.value = sectionIds.length - 1
+      }
+      isScrollTicking = false
+    })
+    isScrollTicking = true
   }
 }
 
@@ -734,9 +741,9 @@ const navBookmarks = computed(() => [
       class="border-b flex flex-col shrink-0 select-none z-40 transition-colors duration-300"
       :class="store.theme === 'light' ? 'bg-[#f5f5f7] border-black/[0.1]' : 'bg-[#101117] border-white/[0.08]'"
     >
-      <!-- Top Tab Strip -->
+      <!-- Top Tab Strip (Desktop Safari only) -->
       <div
-        class="h-9 px-3 flex items-center justify-between border-b"
+        class="hidden md:flex h-9 px-3 items-center justify-between border-b"
         :class="store.theme === 'light' ? 'border-black/[0.06]' : 'border-white/[0.04]'"
       >
         <div class="flex items-center gap-1.5 h-full pt-1">
@@ -769,11 +776,12 @@ const navBookmarks = computed(() => [
 
       <!-- Navigation & Omnibar -->
       <div
-        class="h-11 px-3 sm:px-4 flex items-center gap-2 sm:gap-3"
+        class="h-10 sm:h-11 px-2.5 sm:px-4 flex items-center gap-2 sm:gap-3"
         :class="store.theme === 'light' ? 'bg-[#f0f0f3]' : 'bg-[#13141c]'"
       >
+        <!-- Desktop Browser Nav Buttons -->
         <div
-          class="flex items-center gap-1 shrink-0"
+          class="hidden sm:flex items-center gap-1 shrink-0"
           :class="store.theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'"
         >
           <button
@@ -815,23 +823,23 @@ const navBookmarks = computed(() => [
 
         <!-- Address Bar Pill -->
         <div
-          class="flex-grow flex items-center rounded-lg px-3 py-1.5 transition text-xs group"
+          class="flex-grow flex items-center rounded-lg px-2.5 sm:px-3 py-1 sm:py-1.5 transition text-xs group min-w-0"
           :class="store.theme === 'light'
             ? 'bg-white border border-black/15 shadow-2xs hover:border-black/25'
             : 'bg-[#191a24] hover:bg-[#1d1f2b] border border-white/[0.08] hover:border-white/[0.14]'"
         >
-          <ShieldCheck class="w-3.5 h-3.5 text-emerald-500 shrink-0 mr-2" />
-          <span class="text-emerald-600 font-mono text-[11px] select-none mr-0.5">https://</span>
+          <ShieldCheck class="w-3.5 h-3.5 text-emerald-500 shrink-0 mr-1.5" />
+          <span class="text-emerald-600 font-mono text-[10px] sm:text-[11px] select-none mr-0.5 hidden xs:inline">https://</span>
           <span
             class="font-mono text-[11px] truncate flex-grow"
             :class="store.theme === 'light' ? 'text-zinc-900 font-medium' : 'text-zinc-100'"
           >bernos.com.br</span>
           <span
-            class="font-mono text-[11px] hidden sm:inline mr-2"
+            class="font-mono text-[11px] hidden md:inline mr-2"
             :class="store.theme === 'light' ? 'text-zinc-400' : 'text-zinc-500'"
           >#{{ activeSection }}</span>
 
-          <div class="flex items-center gap-1 shrink-0 ml-2">
+          <div class="flex items-center gap-1 shrink-0 ml-1.5">
             <button
               @click="copyUrl"
               class="p-1 rounded transition cursor-pointer flex items-center gap-1 text-[10px]"
@@ -843,7 +851,7 @@ const navBookmarks = computed(() => [
               <span v-if="copiedUrl" class="text-emerald-500 font-sans hidden sm:inline">Copiado</span>
             </button>
             <button
-              class="p-1 rounded hover:text-amber-500 transition cursor-pointer"
+              class="p-1 rounded hover:text-amber-500 transition cursor-pointer hidden sm:flex"
               :class="store.theme === 'light' ? 'hover:bg-black/10 text-zinc-500' : 'hover:bg-white/10 text-zinc-400'"
               title="Favoritar"
             >
@@ -852,14 +860,27 @@ const navBookmarks = computed(() => [
           </div>
         </div>
 
+        <!-- Language Button on Mobile (Clean compact pill) -->
+        <button
+          @click="toggleLanguage"
+          class="sm:hidden flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono border shrink-0 transition"
+          :class="store.theme === 'light'
+            ? 'bg-white hover:bg-black/5 border-black/10 text-zinc-800'
+            : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-200'"
+          :title="currentLang === 'pt' ? 'Mudar para Inglês' : 'Switch to Portuguese'"
+        >
+          <span>{{ currentLang === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN' }}</span>
+        </button>
+
         <!-- Contact Button -->
         <div class="flex items-center gap-1 shrink-0">
           <button
             @click="openMailApp"
-            class="px-3 py-1.5 rounded-md font-semibold transition text-xs cursor-pointer flex items-center gap-1.5 shadow-xs"
+            class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md font-semibold transition text-xs cursor-pointer flex items-center gap-1.5 shadow-xs"
             :class="store.theme === 'light'
               ? 'bg-amber-500 text-white hover:bg-amber-600'
               : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30'"
+            title="Contato Direto"
           >
             <Mail class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">{{ t.ctaContact }}</span>
@@ -869,14 +890,14 @@ const navBookmarks = computed(() => [
 
       <!-- Quick Section Bookmarks Bar -->
       <nav
-        class="h-8 px-4 border-t flex items-center gap-1.5 overflow-x-auto text-[11px] font-medium scrollbar-none"
+        class="h-7 sm:h-8 px-2.5 sm:px-4 border-t flex items-center gap-1.5 overflow-x-auto text-[10px] sm:text-[11px] font-medium scrollbar-none"
         :class="store.theme === 'light' ? 'bg-[#e8e8eb] border-black/[0.06] text-zinc-600' : 'bg-[#0c0d12] border-white/[0.04] text-zinc-400'"
       >
         <button
           v-for="nav in navBookmarks"
           :key="nav.id"
           @click="scrollToSectionIndex(nav.targetIndex)"
-          class="px-2.5 py-0.5 rounded-md transition cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5"
+          class="px-2 sm:px-2.5 py-0.5 rounded-md transition cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1"
           :class="activeSectionIndex === nav.targetIndex
             ? (store.theme === 'light' ? 'bg-white text-zinc-950 font-bold shadow-2xs border border-black/10' : 'bg-amber-500/15 text-amber-300 font-semibold border border-amber-500/30')
             : (store.theme === 'light' ? 'hover:bg-black/[0.05] hover:text-zinc-900' : 'hover:bg-white/[0.06] hover:text-zinc-200')"
@@ -924,33 +945,38 @@ const navBookmarks = computed(() => [
       class="portfolio-scroll-container flex-grow overflow-y-auto overflow-x-hidden relative z-10 h-full w-full select-text transition-colors duration-300"
       :class="store.theme === 'light' ? 'bg-[#fbfbfd]' : 'bg-[#0a0a0d]'"
     >
-      <!-- Modern DotPattern Background Layer with Radial Mask & Parallax Depth -->
-      <div
-        class="absolute inset-0 pointer-events-none will-change-transform z-0"
-        :style="{ transform: `translate3d(0, ${-scrollOffset * 0.05}px, 0)` }"
-      >
+      <!-- Modern DotPattern Background Layer (Static GPU Layer) -->
+      <div class="absolute inset-0 pointer-events-none z-0">
         <DotPattern
           :width="20"
           :height="20"
           :cx="1"
           :cy="1"
           :cr="1"
-          class="opacity-30 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_85%)]"
+          class="opacity-25 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_85%)]"
           :class="store.theme === 'light' ? 'fill-zinc-400' : 'fill-zinc-500'"
         />
       </div>
 
-      <!-- Parallax Ambient Depth Glows (Layer 2) -->
+      <!-- Parallax Ambient Depth Glows (Ultra-Performant GPU Radial Gradients, Zero Blur Overhead) -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div
-          class="absolute -top-32 left-1/4 w-[750px] h-[500px] rounded-full blur-[160px] will-change-transform"
-          :class="store.theme === 'light' ? 'bg-amber-500/[0.04]' : 'bg-amber-500/[0.03]'"
-          :style="{ transform: `translate3d(0, ${-scrollOffset * 0.15}px, 0)` }"
+          class="absolute -top-24 left-1/4 w-[550px] h-[400px] rounded-full will-change-transform pointer-events-none opacity-60"
+          :style="{
+            background: store.theme === 'light'
+              ? 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0) 70%)'
+              : 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0) 70%)',
+            transform: `translate3d(0, ${-scrollOffset * 0.12}px, 0)`
+          }"
         ></div>
         <div
-          class="absolute top-[45%] -right-20 w-[650px] h-[550px] rounded-full blur-[170px] will-change-transform"
-          :class="store.theme === 'light' ? 'bg-sky-500/[0.03]' : 'bg-sky-500/[0.02]'"
-          :style="{ transform: `translate3d(0, ${scrollOffset * 0.12}px, 0)` }"
+          class="absolute top-[40%] -right-16 w-[550px] h-[450px] rounded-full will-change-transform pointer-events-none opacity-60"
+          :style="{
+            background: store.theme === 'light'
+              ? 'radial-gradient(ellipse at center, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0) 70%)'
+              : 'radial-gradient(ellipse at center, rgba(14, 165, 233, 0.07) 0%, rgba(14, 165, 233, 0) 70%)',
+            transform: `translate3d(0, ${scrollOffset * 0.10}px, 0)`
+          }"
         ></div>
       </div>
 
@@ -965,7 +991,7 @@ const navBookmarks = computed(() => [
           class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 transition-all duration-500 ease-out my-auto"
+            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 transition-all duration-300 ease-out my-auto"
             :class="activeSectionIndex === 0 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <!-- Left Column: Bio & Identity -->
@@ -1113,7 +1139,7 @@ const navBookmarks = computed(() => [
           class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto flex flex-col gap-3.5 sm:gap-4 relative z-10 transition-all duration-500 ease-out my-auto"
+            class="w-full max-w-6xl mx-auto flex flex-col gap-3.5 sm:gap-4 relative z-10 transition-all duration-300 ease-out my-auto"
             :class="activeSectionIndex === 1 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1 border-b pb-2.5" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
@@ -1182,7 +1208,7 @@ const navBookmarks = computed(() => [
           class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 transition-all duration-500 ease-out my-auto"
+            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 transition-all duration-300 ease-out my-auto"
             :class="activeSectionIndex === (nodeIdx + 2) ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <!-- Mobile Stepper Pill (Compact, saves vertical screen space on mobile) -->
@@ -1465,7 +1491,7 @@ const navBookmarks = computed(() => [
           class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-500 ease-out my-auto"
+            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-300 ease-out my-auto"
             :class="activeSectionIndex === 8 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1 border-b pb-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
@@ -1589,7 +1615,7 @@ const navBookmarks = computed(() => [
           class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-500 ease-out my-auto"
+            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-300 ease-out my-auto"
             :class="activeSectionIndex === 9 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1 border-b pb-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
@@ -1727,7 +1753,7 @@ const navBookmarks = computed(() => [
           class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-5xl mx-auto flex flex-col gap-6 relative z-10 transition-all duration-500 ease-out my-auto"
+            class="w-full max-w-5xl mx-auto flex flex-col gap-6 relative z-10 transition-all duration-300 ease-out my-auto"
             :class="activeSectionIndex === 10 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1.5 border-b pb-4" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
