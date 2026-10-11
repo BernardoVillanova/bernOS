@@ -82,11 +82,16 @@ const getAppComponent = (id: string) => {
 }
 
 const activeApp = computed(() => {
-  return store.windows.find(w => w.isOpen && store.activeWindowId === w.id)
+  return store.windows.find(w => w.isOpen && store.activeWindowId === w.id) || store.windows.find(w => w.isOpen)
 })
 
 const openApp = (id: string) => {
   triggerHaptic()
+  store.windows.forEach(w => {
+    if (w.id !== id && (id !== 'gallery' || w.id !== 'files')) {
+      w.isOpen = false
+    }
+  })
   if (id === 'gallery') {
     store.openPhotosInFinder()
     return
@@ -96,9 +101,10 @@ const openApp = (id: string) => {
 
 const closeActiveApp = () => {
   triggerHaptic()
-  if (activeApp.value) {
-    store.closeWindow(activeApp.value.id)
-  }
+  store.windows.forEach(w => {
+    w.isOpen = false
+  })
+  store.activeWindowId = null
 }
 
 onMounted(() => {

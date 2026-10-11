@@ -59,19 +59,30 @@ const checkMobile = () => {
 }
 
 const updateLayoutMode = () => {
-  isMobile.value = checkMobile()
-  if (isMobile.value) {
-    // Close all windows on mobile to show the Home Screen
-    store.windows.forEach(w => {
-      w.isOpen = false
-    })
-    store.activeWindowId = null
+  const nextIsMobile = checkMobile()
+  if (nextIsMobile !== isMobile.value) {
+    isMobile.value = nextIsMobile
+    if (isMobile.value) {
+      // Switched from desktop to mobile: close multi-windows to show mobile home screen
+      store.windows.forEach(w => {
+        w.isOpen = false
+      })
+      store.activeWindowId = null
+    } else {
+      // Switched from mobile to desktop: layout windows
+      store.layoutInitialWindows()
+    }
   }
 }
 
 onMounted(() => {
-  updateLayoutMode()
-  if (!isMobile.value) {
+  isMobile.value = checkMobile()
+  if (isMobile.value) {
+    store.windows.forEach(w => {
+      w.isOpen = false
+    })
+    store.activeWindowId = null
+  } else {
     store.layoutInitialWindows()
   }
   window.addEventListener('resize', updateLayoutMode)

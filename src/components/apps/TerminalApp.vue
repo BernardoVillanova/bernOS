@@ -14,6 +14,10 @@ const historyIndex = ref(-1)
 const terminalBody = ref<HTMLElement | null>(null)
 const isBooting = ref(true)
 
+const isMobileDevice = () => {
+  return typeof window !== 'undefined' && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768)
+}
+
 // Vim Mode states
 const isVimMode = ref(false)
 const vimInput = ref('')
@@ -105,7 +109,7 @@ const runBootSequence = async () => {
   printNeofetch()
   scrollToBottom()
   nextTick(() => {
-    if (inputField.value) inputField.value.focus()
+    if (!isMobileDevice() && inputField.value) inputField.value.focus()
   })
 }
 
@@ -207,7 +211,7 @@ const handleGlobalKeydown = (e: KeyboardEvent) => {
 }
 
 watch(() => windowStore.activeWindowId, (newActiveId) => {
-  if (newActiveId === 'terminal') {
+  if (newActiveId === 'terminal' && !isMobileDevice()) {
     focusTerminalInput()
   }
 })
@@ -945,7 +949,7 @@ onUnmounted(() => {
             :type="isSudoPrompt ? 'password' : 'text'"
             class="w-full bg-transparent outline-none border-none p-0 select-text select-text-safe font-mono"
             :class="windowStore.theme === 'light' ? 'text-zinc-950' : 'text-gray-100'"
-            autofocus
+            :autofocus="!isMobileDevice()"
             @keydown.enter="handleCommand"
             @keydown="handleKeydown"
             ref="inputField"

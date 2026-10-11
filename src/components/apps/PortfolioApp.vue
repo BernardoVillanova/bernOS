@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useWindowStore } from '../../stores/windowStore'
 import DotPattern from '../ui/DotPattern.vue'
 import {
@@ -114,25 +114,55 @@ const activeSection = computed(() => sectionIds[activeSectionIndex.value])
 const scrollToSectionIndex = (index: number) => {
   if (index < 0 || index >= sectionIds.length) return
   activeSectionIndex.value = index
+  nextTick(() => {
+    const el = document.getElementById(sectionIds[index])
+    if (el) el.scrollTop = 0
+  })
 }
 
 const nextSection = () => {
   if (activeSectionIndex.value < sectionIds.length - 1) {
-    scrollToSectionIndex(activeSectionIndex.value + 1)
+    const nextIdx = activeSectionIndex.value + 1
+    activeSectionIndex.value = nextIdx
+    nextTick(() => {
+      const el = document.getElementById(sectionIds[nextIdx])
+      if (el) el.scrollTop = 0
+    })
   }
 }
 
 const prevSection = () => {
   if (activeSectionIndex.value > 0) {
-    scrollToSectionIndex(activeSectionIndex.value - 1)
+    const prevIdx = activeSectionIndex.value - 1
+    activeSectionIndex.value = prevIdx
+    nextTick(() => {
+      const el = document.getElementById(sectionIds[prevIdx])
+      if (el) el.scrollTop = 0
+    })
   }
 }
 
-// Wheel momentum suppression: 1 gesture = exactly 1 section transition
+// Wheel momentum suppression: 1 gesture = exactly 1 section transition (unless internal scroll exists)
 let isLocked = false
 let unlockTimeout: ReturnType<typeof setTimeout> | null = null
 
 const handleWheel = (e: WheelEvent) => {
+  const currentSection = document.getElementById(sectionIds[activeSectionIndex.value])
+  if (currentSection && currentSection.scrollHeight > currentSection.clientHeight + 15) {
+    const maxScroll = currentSection.scrollHeight - currentSection.clientHeight
+    const atBottom = currentSection.scrollTop >= maxScroll - 10
+    const atTop = currentSection.scrollTop <= 10
+
+    if (e.deltaY > 0 && !atBottom) {
+      // Let the section scroll down naturally
+      return
+    }
+    if (e.deltaY < 0 && !atTop) {
+      // Let the section scroll up naturally
+      return
+    }
+  }
+
   e.preventDefault()
 
   if (isLocked) {
@@ -169,28 +199,83 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
 }
 
+// Mobile Touch Scroll & Parallax Differentiator
 let touchStartY = 0
+let touchStartX = 0
 let touchStartTime = 0
+let initialScrollTop = 0
+let initialMaxScroll = 0
+let isSectionScrollable = false
 
 const handleTouchStart = (e: TouchEvent) => {
   if (e.touches.length > 0) {
     touchStartY = e.touches[0].clientY
+    touchStartX = e.touches[0].clientX
     touchStartTime = Date.now()
+
+    const currentSection = document.getElementById(sectionIds[activeSectionIndex.value])
+    if (currentSection) {
+      initialScrollTop = currentSection.scrollTop
+      initialMaxScroll = Math.max(0, currentSection.scrollHeight - currentSection.clientHeight)
+      isSectionScrollable = initialMaxScroll > 15
+    } else {
+      isSectionScrollable = false
+      initialScrollTop = 0
+      initialMaxScroll = 0
+    }
   }
 }
 
 const handleTouchEnd = (e: TouchEvent) => {
   if (e.changedTouches.length === 0) return
   const touchEndY = e.changedTouches[0].clientY
+  const touchEndX = e.changedTouches[0].clientX
   const deltaY = touchStartY - touchEndY
+  const deltaX = touchStartX - touchEndX
   const duration = Date.now() - touchStartTime
 
-  if (Math.abs(deltaY) > 45 && duration < 600) {
+  // Ignore primarily horizontal gestures
+  if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) return
+
+  // Must be an intentional swipe gesture
+  if (Math.abs(deltaY) < 50 || duration > 750) return
+
+  const currentSection = document.getElementById(sectionIds[activeSectionIndex.value])
+
+  if (isSectionScrollable && currentSection) {
+    const currentScrollTop = currentSection.scrollTop
+    const maxScroll = Math.max(0, currentSection.scrollHeight - currentSection.clientHeight)
+
     if (deltaY > 0) {
-      nextSection()
+      // User swiping UP (scrolling DOWN)
+      // Only transition to next parallax section if user was ALREADY at bottom when touch started
+      // AND is STILL at the bottom now
+      const startedAtBottom = initialScrollTop >= initialMaxScroll - 15
+      const endedAtBottom = currentScrollTop >= maxScroll - 10
+
+      if (!startedAtBottom || !endedAtBottom) {
+        // User was scrolling internal section content. DO NOT advance parallax!
+        return
+      }
     } else {
-      prevSection()
+      // User swiping DOWN (scrolling UP)
+      // Only transition to previous parallax section if user was ALREADY at top when touch started
+      // AND is STILL at the top now
+      const startedAtTop = initialScrollTop <= 15
+      const endedAtTop = currentScrollTop <= 10
+
+      if (!startedAtTop || !endedAtTop) {
+        // User was scrolling internal section content. DO NOT advance parallax!
+        return
+      }
     }
+  }
+
+  // Section is not scrollable OR user swiped past the boundary: advance parallax!
+  if (deltaY > 0) {
+    nextSection()
+  } else {
+    prevSection()
   }
 }
 
