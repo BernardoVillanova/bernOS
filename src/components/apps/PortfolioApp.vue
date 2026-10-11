@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useWindowStore } from '../../stores/windowStore'
 import DotPattern from '../ui/DotPattern.vue'
 import {
@@ -110,174 +110,101 @@ const sectionIds = [
 
 const activeSectionIndex = ref(0)
 const activeSection = computed(() => sectionIds[activeSectionIndex.value])
+const scrollContainer = ref<HTMLElement | null>(null)
+const scrollOffset = ref(0)
+let sectionObserver: IntersectionObserver | null = null
+
+const handleContainerScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+  if (!target) return
+  scrollOffset.value = target.scrollTop
+
+  // Boundary fallbacks for instant responsiveness
+  if (target.scrollTop <= 20) {
+    activeSectionIndex.value = 0
+  } else if (target.scrollTop + target.clientHeight >= target.scrollHeight - 30) {
+    activeSectionIndex.value = sectionIds.length - 1
+  }
+}
 
 const scrollToSectionIndex = (index: number) => {
   if (index < 0 || index >= sectionIds.length) return
   activeSectionIndex.value = index
-  nextTick(() => {
-    const el = document.getElementById(sectionIds[index])
-    if (el) el.scrollTop = 0
-  })
+  const container = scrollContainer.value
+  const targetEl = document.getElementById(sectionIds[index])
+  if (container && targetEl) {
+    const targetTop = targetEl.offsetTop
+    container.scrollTo({
+      top: targetTop,
+      behavior: 'smooth'
+    })
+  } else if (targetEl) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 }
 
 const nextSection = () => {
   if (activeSectionIndex.value < sectionIds.length - 1) {
-    const nextIdx = activeSectionIndex.value + 1
-    activeSectionIndex.value = nextIdx
-    nextTick(() => {
-      const el = document.getElementById(sectionIds[nextIdx])
-      if (el) el.scrollTop = 0
-    })
+    scrollToSectionIndex(activeSectionIndex.value + 1)
   }
 }
 
 const prevSection = () => {
   if (activeSectionIndex.value > 0) {
-    const prevIdx = activeSectionIndex.value - 1
-    activeSectionIndex.value = prevIdx
-    nextTick(() => {
-      const el = document.getElementById(sectionIds[prevIdx])
-      if (el) el.scrollTop = 0
-    })
+    scrollToSectionIndex(activeSectionIndex.value - 1)
   }
-}
-
-// Wheel momentum suppression: 1 gesture = exactly 1 section transition (unless internal scroll exists)
-let isLocked = false
-let unlockTimeout: ReturnType<typeof setTimeout> | null = null
-
-const handleWheel = (e: WheelEvent) => {
-  const currentSection = document.getElementById(sectionIds[activeSectionIndex.value])
-  if (currentSection && currentSection.scrollHeight > currentSection.clientHeight + 15) {
-    const maxScroll = currentSection.scrollHeight - currentSection.clientHeight
-    const atBottom = currentSection.scrollTop >= maxScroll - 10
-    const atTop = currentSection.scrollTop <= 10
-
-    if (e.deltaY > 0 && !atBottom) {
-      // Let the section scroll down naturally
-      return
-    }
-    if (e.deltaY < 0 && !atTop) {
-      // Let the section scroll up naturally
-      return
-    }
-  }
-
-  e.preventDefault()
-
-  if (isLocked) {
-    if (unlockTimeout) clearTimeout(unlockTimeout)
-    unlockTimeout = setTimeout(() => {
-      isLocked = false
-    }, 220)
-    return
-  }
-
-  if (Math.abs(e.deltaY) < 15) return
-
-  isLocked = true
-
-  if (e.deltaY > 0) {
-    nextSection()
-  } else {
-    prevSection()
-  }
-
-  if (unlockTimeout) clearTimeout(unlockTimeout)
-  unlockTimeout = setTimeout(() => {
-    isLocked = false
-  }, 750)
 }
 
 const handleKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+  if (e.key === 'ArrowDown' || e.key === 'PageDown') {
     e.preventDefault()
     nextSection()
   } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
     e.preventDefault()
     prevSection()
+  } else if (e.key === 'Home') {
+    e.preventDefault()
+    scrollToSectionIndex(0)
+  } else if (e.key === 'End') {
+    e.preventDefault()
+    scrollToSectionIndex(sectionIds.length - 1)
   }
 }
 
-// Mobile Touch Scroll & Parallax Differentiator
-let touchStartY = 0
-let touchStartX = 0
-let touchStartTime = 0
-let initialScrollTop = 0
-let initialMaxScroll = 0
-let isSectionScrollable = false
+onMounted(() => {
+  nextTick(() => {
+    if (!scrollContainer.value) return
 
-const handleTouchStart = (e: TouchEvent) => {
-  if (e.touches.length > 0) {
-    touchStartY = e.touches[0].clientY
-    touchStartX = e.touches[0].clientX
-    touchStartTime = Date.now()
-
-    const currentSection = document.getElementById(sectionIds[activeSectionIndex.value])
-    if (currentSection) {
-      initialScrollTop = currentSection.scrollTop
-      initialMaxScroll = Math.max(0, currentSection.scrollHeight - currentSection.clientHeight)
-      isSectionScrollable = initialMaxScroll > 15
-    } else {
-      isSectionScrollable = false
-      initialScrollTop = 0
-      initialMaxScroll = 0
-    }
-  }
-}
-
-const handleTouchEnd = (e: TouchEvent) => {
-  if (e.changedTouches.length === 0) return
-  const touchEndY = e.changedTouches[0].clientY
-  const touchEndX = e.changedTouches[0].clientX
-  const deltaY = touchStartY - touchEndY
-  const deltaX = touchStartX - touchEndX
-  const duration = Date.now() - touchStartTime
-
-  // Ignore primarily horizontal gestures
-  if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) return
-
-  // Must be an intentional swipe gesture
-  if (Math.abs(deltaY) < 50 || duration > 750) return
-
-  const currentSection = document.getElementById(sectionIds[activeSectionIndex.value])
-
-  if (isSectionScrollable && currentSection) {
-    const currentScrollTop = currentSection.scrollTop
-    const maxScroll = Math.max(0, currentSection.scrollHeight - currentSection.clientHeight)
-
-    if (deltaY > 0) {
-      // User swiping UP (scrolling DOWN)
-      // Only transition to next parallax section if user was ALREADY at bottom when touch started
-      // AND is STILL at the bottom now
-      const startedAtBottom = initialScrollTop >= initialMaxScroll - 15
-      const endedAtBottom = currentScrollTop >= maxScroll - 10
-
-      if (!startedAtBottom || !endedAtBottom) {
-        // User was scrolling internal section content. DO NOT advance parallax!
-        return
+    sectionObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter(e => e.isIntersecting)
+        if (visible.length > 0) {
+          visible.sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+          const idx = sectionIds.indexOf(visible[0].target.id)
+          if (idx !== -1) {
+            activeSectionIndex.value = idx
+          }
+        }
+      },
+      {
+        root: scrollContainer.value,
+        threshold: [0.15, 0.4, 0.7]
       }
-    } else {
-      // User swiping DOWN (scrolling UP)
-      // Only transition to previous parallax section if user was ALREADY at top when touch started
-      // AND is STILL at the top now
-      const startedAtTop = initialScrollTop <= 15
-      const endedAtTop = currentScrollTop <= 10
+    )
 
-      if (!startedAtTop || !endedAtTop) {
-        // User was scrolling internal section content. DO NOT advance parallax!
-        return
-      }
-    }
-  }
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id)
+      if (el) sectionObserver?.observe(el)
+    })
+  })
+})
 
-  // Section is not scrollable OR user swiped past the boundary: advance parallax!
-  if (deltaY > 0) {
-    nextSection()
-  } else {
-    prevSection()
+onUnmounted(() => {
+  if (sectionObserver) {
+    sectionObserver.disconnect()
+    sectionObserver = null
   }
-}
+})
 
 // ==========================================
 // TECH STACK SHOWCASE (COMPACT, CRISP & BALANCED)
@@ -992,53 +919,54 @@ const navBookmarks = computed(() => [
     <!-- SECTION-BY-SECTION FULLPAGE CONTAINER      -->
     <!-- ========================================== -->
     <div
-      @wheel="handleWheel"
-      @touchstart="handleTouchStart"
-      @touchend="handleTouchEnd"
-      class="flex-grow overflow-hidden relative z-10 h-full w-full select-text transition-colors duration-300"
+      ref="scrollContainer"
+      @scroll="handleContainerScroll"
+      class="portfolio-scroll-container flex-grow overflow-y-auto overflow-x-hidden relative z-10 h-full w-full select-text transition-colors duration-300"
       :class="store.theme === 'light' ? 'bg-[#fbfbfd]' : 'bg-[#0a0a0d]'"
     >
-      <!-- Modern DotPattern Background Layer with Radial Mask -->
-      <DotPattern
-        :width="20"
-        :height="20"
-        :cx="1"
-        :cy="1"
-        :cr="1"
-        class="opacity-30 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_85%)]"
-        :class="store.theme === 'light' ? 'fill-zinc-400' : 'fill-zinc-500'"
-      />
+      <!-- Modern DotPattern Background Layer with Radial Mask & Parallax Depth -->
+      <div
+        class="absolute inset-0 pointer-events-none will-change-transform z-0"
+        :style="{ transform: `translate3d(0, ${-scrollOffset * 0.05}px, 0)` }"
+      >
+        <DotPattern
+          :width="20"
+          :height="20"
+          :cx="1"
+          :cy="1"
+          :cr="1"
+          class="opacity-30 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_85%)]"
+          :class="store.theme === 'light' ? 'fill-zinc-400' : 'fill-zinc-500'"
+        />
+      </div>
 
-      <!-- Parallax Ambient Depth Glows -->
-      <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <!-- Parallax Ambient Depth Glows (Layer 2) -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div
-          class="absolute -top-32 left-1/4 w-[750px] h-[500px] rounded-full blur-[160px] transition-transform duration-700 ease-out"
+          class="absolute -top-32 left-1/4 w-[750px] h-[500px] rounded-full blur-[160px] will-change-transform"
           :class="store.theme === 'light' ? 'bg-amber-500/[0.04]' : 'bg-amber-500/[0.03]'"
-          :style="{ transform: `translateY(${activeSectionIndex * -35}px)` }"
+          :style="{ transform: `translate3d(0, ${-scrollOffset * 0.15}px, 0)` }"
         ></div>
         <div
-          class="absolute top-[45%] -right-20 w-[650px] h-[550px] rounded-full blur-[170px] transition-transform duration-700 ease-out"
+          class="absolute top-[45%] -right-20 w-[650px] h-[550px] rounded-full blur-[170px] will-change-transform"
           :class="store.theme === 'light' ? 'bg-sky-500/[0.03]' : 'bg-sky-500/[0.02]'"
-          :style="{ transform: `translateY(${activeSectionIndex * 30}px)` }"
+          :style="{ transform: `translate3d(0, ${scrollOffset * 0.12}px, 0)` }"
         ></div>
       </div>
 
-      <!-- Slides Track -->
-      <div
-        class="w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform flex flex-col"
-        :style="{ transform: `translateY(-${activeSectionIndex * 100}%)` }"
-      >
+      <!-- Continuous Sections Flow (Layer 3 - Native GPU Momentum Scroll) -->
+      <div class="w-full flex flex-col relative z-10">
 
         <!-- ========================================== -->
         <!-- SLIDE 0: HERO                              -->
         <!-- ========================================== -->
         <section
           id="hero"
-          class="w-full h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-6 sm:py-8 overflow-y-auto relative select-text"
+          class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 transition-all duration-700 ease-out my-auto"
-            :class="activeSectionIndex === 0 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-20 translate-y-6 scale-[0.98] pointer-events-none'"
+            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 transition-all duration-500 ease-out my-auto"
+            :class="activeSectionIndex === 0 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <!-- Left Column: Bio & Identity -->
             <div class="lg:col-span-7 flex flex-col items-start gap-5">
@@ -1182,11 +1110,11 @@ const navBookmarks = computed(() => [
         <!-- ========================================== -->
         <section
           id="stack"
-          class="w-full h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-4 sm:py-6 overflow-y-auto relative select-text"
+          class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto flex flex-col gap-3.5 sm:gap-4 relative z-10 transition-all duration-700 ease-out my-auto"
-            :class="activeSectionIndex === 1 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-20 translate-y-6 scale-[0.98] pointer-events-none'"
+            class="w-full max-w-6xl mx-auto flex flex-col gap-3.5 sm:gap-4 relative z-10 transition-all duration-500 ease-out my-auto"
+            :class="activeSectionIndex === 1 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1 border-b pb-2.5" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
               <div class="text-[11px] font-mono uppercase tracking-wider font-semibold" :class="store.theme === 'light' ? 'text-amber-600' : 'text-amber-400'">
@@ -1251,11 +1179,11 @@ const navBookmarks = computed(() => [
           v-for="(node, nodeIdx) in flowchartNodes"
           :key="node.id"
           :id="node.id"
-          class="w-full h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-6 sm:py-8 overflow-y-auto relative select-text"
+          class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 transition-all duration-700 ease-out my-auto"
-            :class="activeSectionIndex === (nodeIdx + 2) ? 'opacity-100 translate-y-0 scale-100' : 'opacity-20 translate-y-6 scale-[0.98] pointer-events-none'"
+            class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 transition-all duration-500 ease-out my-auto"
+            :class="activeSectionIndex === (nodeIdx + 2) ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <!-- Mobile Stepper Pill (Compact, saves vertical screen space on mobile) -->
             <div
@@ -1534,11 +1462,11 @@ const navBookmarks = computed(() => [
         <!-- ========================================== -->
         <section
           id="cases"
-          class="w-full h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-6 sm:py-8 overflow-y-auto relative select-text"
+          class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-700 ease-out my-auto"
-            :class="activeSectionIndex === 8 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-20 translate-y-6 scale-[0.98] pointer-events-none'"
+            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-500 ease-out my-auto"
+            :class="activeSectionIndex === 8 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1 border-b pb-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
               <div class="text-xs font-mono uppercase tracking-wider font-semibold" :class="store.theme === 'light' ? 'text-amber-600' : 'text-amber-400'">
@@ -1658,11 +1586,11 @@ const navBookmarks = computed(() => [
         <!-- ========================================== -->
         <section
           id="education"
-          class="w-full h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-6 sm:py-8 overflow-y-auto relative select-text"
+          class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-700 ease-out my-auto"
-            :class="activeSectionIndex === 9 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-20 translate-y-6 scale-[0.98] pointer-events-none'"
+            class="w-full max-w-6xl mx-auto flex flex-col gap-5 relative z-10 transition-all duration-500 ease-out my-auto"
+            :class="activeSectionIndex === 9 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1 border-b pb-3" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
               <div class="text-xs font-mono uppercase tracking-wider font-semibold" :class="store.theme === 'light' ? 'text-amber-600' : 'text-amber-400'">
@@ -1796,11 +1724,11 @@ const navBookmarks = computed(() => [
         <!-- ========================================== -->
         <section
           id="contact"
-          class="w-full h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-6 sm:py-8 overflow-y-auto relative select-text"
+          class="portfolio-section w-full min-h-full shrink-0 flex flex-col justify-start sm:justify-center px-6 sm:px-12 lg:px-16 py-8 sm:py-10 relative select-text snap-start"
         >
           <div
-            class="w-full max-w-5xl mx-auto flex flex-col gap-6 relative z-10 transition-all duration-700 ease-out my-auto"
-            :class="activeSectionIndex === 10 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-20 translate-y-6 scale-[0.98] pointer-events-none'"
+            class="w-full max-w-5xl mx-auto flex flex-col gap-6 relative z-10 transition-all duration-500 ease-out my-auto"
+            :class="activeSectionIndex === 10 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-40 translate-y-3 scale-[0.99]'"
           >
             <div class="flex flex-col gap-1.5 border-b pb-4" :class="store.theme === 'light' ? 'border-black/10' : 'border-white/[0.08]'">
               <div class="text-xs font-mono uppercase tracking-wider font-semibold" :class="store.theme === 'light' ? 'text-amber-600' : 'text-amber-400'">
@@ -1866,6 +1794,23 @@ const navBookmarks = computed(() => [
 </template>
 
 <style scoped>
+.portfolio-scroll-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y proximity;
+}
+
+@media (min-width: 768px) {
+  .portfolio-scroll-container {
+    scroll-snap-type: y mandatory;
+  }
+}
+
+.portfolio-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
