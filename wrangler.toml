@@ -1,0 +1,11 @@
+name = "bernos"
+compatibility_date = "2024-11-01"
+pages_build_output_dir = "dist"
+
+[vars]
+GITHUB_USER = "BernardoVillanova"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bernos-db"
+database_id = "bernos-db" # Substitua pelo database_id retornado ao criar o D1 ou vincule diretamente no painel do Cloudflare Pages
