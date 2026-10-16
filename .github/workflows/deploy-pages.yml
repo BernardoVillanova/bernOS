@@ -22,6 +22,9 @@ jobs:
       - name: Instalar dependências
         run: bun install --frozen-lockfile
 
+      - name: Executar testes automatizados
+        run: bun run test
+
       - name: Build do frontend (Vite + Vue-TSC)
         run: bun run build
 
